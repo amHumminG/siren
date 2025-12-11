@@ -1,0 +1,8 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="application/application.vcxproj" Id="bc835fff-73de-4f82-8fbf-48f774bb274e" />
+  <Project Path="siren/siren.vcxproj" Id="ea4f77f3-6196-46fe-a561-5f34a79b6180" />
+</Solution>
