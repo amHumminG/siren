@@ -1,4 +1,4 @@
-#include "siren.h"
+#include "siren/siren.h"
 
 int main() {
 	siren::HelloWorld();

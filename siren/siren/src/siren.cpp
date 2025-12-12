@@ -1,5 +1,4 @@
-#include "siren.h"
-
+#include "siren/siren.h"
 #include <iostream>
 
 namespace siren {
