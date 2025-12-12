@@ -1,18 +1,18 @@
 # Siren guidelines
 
-This document summarizes the most important standards used in the Siren project.
+This document summarizes the most important standards used within this project.
 
 ## Project Structure
 
-Siren follows a strict separation between the **Public API** (Menu) and **Internal Logic** (Kitchen).
+Siren follows a strict separation between the **Public API** and **Internal Logic**.
 
   * **`siren/include/siren/`**: Public headers *only*.
       * Contains the interface users will see (e.g., `AudioDecoder.h`).
-      * **No** internal implementation details or system headers (`<Windows.h>`) allowed here.
+      * No internal implementation details or system headers (`<Windows.h>`) allowed here.
   * **`siren/src/`**: Implementation files (`.cpp`) and private headers.
       * All logic goes here.
       * **`siren/src/internal/`**: Private tools meant *only* for the library (e.g., `Log.h`).
-  * **`application/`**: A scratchpad application for testing the library.
+  * **`application/`**: A sandbox application for testing the library.
 
 ## Coding Standards
 
@@ -22,7 +22,7 @@ The project is using **C++20**.
 
 | Element | Style | Example |
 | :--- | :--- | :--- |
-| **Namespaces** | `snake_case` | `namespace siren`, `namespace siren::utils` |
+| **Namespaces** | `snake_case` | `namespace siren::utils` |
 | **Types (Classes/Structs)** | `PascalCase` | `AudioDecoder` |
 | **Functions** | `camelCase` | `openFile()` |
 | **Variables** | `camelCase` | `bufferSize` |
@@ -36,7 +36,7 @@ The project is using **C++20**.
   * **`const`**: Mark methods `const` if they do not modify the object state.
   * **`noexcept`**: Mandatory for any function intended to run in the audio callback loop.
 
-## The "Two Worlds" Rule (Critical)
+## Two Contexts
 
 Audio programming involves two distinct execution contexts. Know which one you are writing for.
 
@@ -48,7 +48,7 @@ Audio programming involves two distinct execution contexts. Know which one you a
 ### 2\. The Audio Thread (Real-Time)
 
   * **Allowed:** Math, Pointer Arithmetic, Atomic reads/writes.
-  * **STRICTLY FORBIDDEN:**
+  * **Strictly Forbidden:**
       * Allocating memory (`malloc`, `new`, `std::vector::push_back`).
       * File I/O (`fread`, `std::ofstream`).
       * Throwing Exceptions.
@@ -61,8 +61,7 @@ Audio programming involves two distinct execution contexts. Know which one you a
 The custom `Result` type is used to handle errors without exceptions in hot paths.
 
   * **Return Type:** Use `siren::Result<T>` for operations that might fail.
-  * **Checking:** Use the explicit bool operator: `if (!result) { ... }`.
-  * Alternatively use the `if (!result.isOk()) { ... }` or `if (result.isErr()) { ... }`.
+  * **Checking:** Use the explicit bool operator: `if (!result) { ... }`. Alternatively use the `if (!result.isOk()) { ... }` or `if (result.isErr()) { ... }`.
   * **Logging:**
       * In **Public Headers**: Use `siren::utils::logError("msg")`.
       * In **Source Files**: Use `SIREN_LOG_ERROR("msg")` (from `internal/Log.h`).
@@ -94,8 +93,8 @@ We use **Conventional Commits** for git messages.
 
   * **Format:** `type(scope): description`
   * **Types:**
-      * `feat`: A new feature (e.g., `feat(decoder): add mp3 support`)
-      * `fix`: A bug fix (e.g., `fix(wav): handle missing fmt chunk`)
+      * `feat`: A new feature
+      * `fix`: A bug fix
       * `docs`: Documentation only
       * `style`: Formatting/Whitespace (no code change)
       * `refactor`: Code restructuring without behavior change
