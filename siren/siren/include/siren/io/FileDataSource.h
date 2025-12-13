@@ -7,7 +7,7 @@ namespace siren {
 
 	class FileDataSource : public DataSource {
 	private:
-		std::ifstream m_file;
+		mutable std::ifstream m_file;
 		size_t m_fileSize = 0;
 
 	public:
@@ -20,7 +20,7 @@ namespace siren {
 		[[nodiscard]] bool isValid() const;
 
 		[[nodiscard]] size_t read(std::span<std::byte> dst) override;
-		[[nodiscard]] ResultCode seek(size_t offset) override;
+		[[nodiscard]] ResultCode seek(size_t byteOffset) override;
 		[[nodiscard]] size_t tell() const override;
 		[[nodiscard]] size_t size() const override;
 	};

@@ -14,6 +14,8 @@ namespace siren {
 		/// Attempts to fill the buffer completely. If the source has fewer bytes
 		/// remaining than the buffer size, only the remaining bytes are read
 		/// 
+		/// This function will also move the cursor along with the read data
+		/// 
 		/// @param dst Destination buffer
 		/// @return Number of bytes read into the buffer
 		[[nodiscard]] virtual size_t read(std::span<std::byte> dst) = 0;

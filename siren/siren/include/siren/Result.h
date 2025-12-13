@@ -7,7 +7,8 @@ namespace siren {
 
 	enum class ResultCode {
 		Success = 0,
-		FileNotFound,
+		OutOfBounds,
+		InvalidFile,
 		InvalidHeader,
 		// more to come
 	};

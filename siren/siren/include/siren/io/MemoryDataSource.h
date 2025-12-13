@@ -8,8 +8,8 @@ namespace siren {
 	class MemoryDataSource : public DataSource {
 	private:
 		const std::byte* m_data = nullptr;
-		size_t m_size;
-		size_t m_cursor;
+		size_t m_size = 0;
+		size_t m_cursor = 0;
 
 	public:
 		/// @brief Creates a data source from a buffer in memory
