@@ -95,6 +95,7 @@ We use **Conventional Commits** for git messages.
   * **Types:**
       * `feat`: A new feature
       * `fix`: A bug fix
+      * `test`: A test
       * `docs`: Documentation only
       * `style`: Formatting/Whitespace (no code change)
       * `refactor`: Code restructuring without behavior change
