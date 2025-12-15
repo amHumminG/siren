@@ -9,7 +9,7 @@ namespace siren {
 		: m_data(static_cast<const std::byte*>(ptr)), m_size(size) {}
 
 	bool MemoryDataSource::isValid() const {
-		return m_data != nullptr;
+		return m_data != nullptr && m_size > 0;
 	}
 
 	size_t MemoryDataSource::read(std::span<std::byte> dst) {

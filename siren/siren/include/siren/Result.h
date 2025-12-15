@@ -9,6 +9,7 @@ namespace siren {
 		Success = 0,
 		OutOfBounds,
 		InvalidFile,
+		InvalidData,
 		InvalidHeader,
 		// more to come
 	};

@@ -131,7 +131,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="include\siren\codecs\WavDecoder.h" />
     <ClInclude Include="include\siren\DataSource.h" />
+    <ClInclude Include="include\siren\Decoder.h" />
     <ClInclude Include="include\siren\io\FileDataSource.h" />
     <ClInclude Include="include\siren\io\MemoryDataSource.h" />
     <ClInclude Include="include\siren\Result.h" />
@@ -140,6 +142,7 @@
     <ClInclude Include="src\internal\log.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\codecs\WavDecoder.cpp" />
     <ClCompile Include="src\io\FileDataSource.cpp" />
     <ClCompile Include="src\io\MemoryDataSource.cpp" />
     <ClCompile Include="src\siren.cpp" />
