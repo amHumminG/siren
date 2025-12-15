@@ -8,6 +8,10 @@ namespace siren {
 	MemoryDataSource::MemoryDataSource(const void* ptr, size_t size) 
 		: m_data(static_cast<const std::byte*>(ptr)), m_size(size) {}
 
+	bool MemoryDataSource::isValid() const {
+		return m_data != nullptr;
+	}
+
 	size_t MemoryDataSource::read(std::span<std::byte> dst) {
 		if (m_cursor >= m_size) {
 			return 0;

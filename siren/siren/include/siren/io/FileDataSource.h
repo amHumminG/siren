@@ -18,7 +18,6 @@ namespace siren {
 		/// @brief Checks if file was successfully opened
 		/// @return True if file is open, otherwise false
 		[[nodiscard]] bool isValid() const;
-
 		[[nodiscard]] size_t read(std::span<std::byte> dst) override;
 		[[nodiscard]] ResultCode seek(size_t byteOffset) override;
 		[[nodiscard]] size_t tell() const override;

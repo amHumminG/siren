@@ -20,6 +20,10 @@ namespace siren {
 		/// @param size Size of the buffer
 		MemoryDataSource(const void* ptr, size_t size);
 
+		/// @brief Verifies data source validity
+		/// @return True if data is not nullptr, otherwise false
+		[[nodiscard]] bool isValid() const override;
+
 		[[nodiscard]] size_t read(std::span<std::byte> dst) override;
 		[[nodiscard]] ResultCode seek(size_t byteOffset) override;
 		[[nodiscard]] size_t tell() const override;
