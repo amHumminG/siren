@@ -9,6 +9,8 @@ namespace siren {
 	public:
 		virtual ~DataSource() = default;
 
+		/// @brief Checks if data source has been created correctly
+		/// @return True if all setups have been performed, otherwise false
 		[[nodiscard]] virtual bool isValid() const = 0;
 
 		/// @brief Reads up to N bytes, where N is the size of the destination buffer
