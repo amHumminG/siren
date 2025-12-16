@@ -134,5 +134,28 @@ namespace siren {
 
 		return m_dataSource->seek(byteOffset);
 	}
+
+	size_t WavDecoder::tell() const {
+		size_t pos = m_dataSource->tell();
+
+		if (pos < m_dataStartOffset) {
+			return 0;
+		}
+
+		size_t byteOffset = pos - m_dataStartOffset;
+		return byteOffset / m_blockAlign;
+	}
+
+	uint32_t WavDecoder::getSampleRate() const {
+		return m_sampleRate;
+	}
+
+	uint16_t WavDecoder::getChannelCount() const {
+		return m_channelCount;
+	}
+
+	size_t WavDecoder::getTotalFrames() const {
+		return m_totalFrames;
+	}
 }
 
