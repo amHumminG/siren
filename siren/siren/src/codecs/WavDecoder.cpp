@@ -71,8 +71,10 @@ namespace siren {
 
 				uint32_t dataSize = chunk.size;
 				size_t bytesPerSample = m_bitsPerSample / 8;
-				size_t frameSize = m_channelCount * bytesPerSample; // LR = one frame if stereo
+				size_t frameSize = m_channelCount * bytesPerSample; // LR = one frame (stereo)
 				m_totalFrames = dataSize / frameSize;
+
+				dataChunkFound = true;
 
 				break;
 			}
