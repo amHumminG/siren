@@ -1,12 +1,15 @@
 #pragma once
-#include <memory>
 #include "siren/DataSource.h"
+#include <memory>
+#include <vector>
 
 namespace siren {
 
 	class Decoder {
 	protected:
 		std::unique_ptr<DataSource> m_dataSource;
+
+		std::vector<std::byte> m_rawBuffer;
 
 		uint32_t m_sampleRate;
 		uint16_t m_channelCount;
@@ -27,6 +30,7 @@ namespace siren {
 				return ResultCode::InvalidData;
 			}
 			m_dataSource = std::move(audioData);
+			m_rawBuffer.reserve(16384); // Reserve standard to avoid memory allocation in decode()
 			return decodeHeader();
 		}
 
