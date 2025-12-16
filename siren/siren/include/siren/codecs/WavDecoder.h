@@ -11,7 +11,7 @@ struct SignatureChunk {
 
 struct Chunk {
 	char identifier[4];		// Chunk identifier "data" or "fmt "
-	uint32_t chunkSize;		// Size of chunk
+	uint32_t size;			// Size of chunk
 };
 
 struct FormatChunk {

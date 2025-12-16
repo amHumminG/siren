@@ -42,8 +42,8 @@ namespace siren {
 				
 				// Accounting for potentially extended data formats
 				size_t bytesRead = sizeof(formatData);
-				if (chunk.chunkSize > bytesRead) {
-					if (m_dataSource->seek(m_dataSource->tell() + (chunk.chunkSize - bytesRead)) != ResultCode::Success) {
+				if (chunk.size > bytesRead) {
+					if (m_dataSource->seek(m_dataSource->tell() + (chunk.size - bytesRead)) != ResultCode::Success) {
 						return ResultCode::InvalidHeader;
 					}
 				}
@@ -59,7 +59,7 @@ namespace siren {
 
 				m_dataStartOffset = m_dataSource->tell();
 
-				uint32_t dataSize = chunk.chunkSize;
+				uint32_t dataSize = chunk.size;
 				size_t bytesPerSample = m_bitsPerSample / 8;
 				size_t frameSize = m_channelCount * bytesPerSample; // LR = one frame if stereo
 				m_totalFrames = dataSize / frameSize;
@@ -67,7 +67,7 @@ namespace siren {
 				break;
 			}
 
-			else if (m_dataSource->seek(m_dataSource->tell() + chunk.chunkSize) != ResultCode::Success) {
+			else if (m_dataSource->seek(m_dataSource->tell() + chunk.size) != ResultCode::Success) {
 				return ResultCode::InvalidHeader;
 			}
 		}
@@ -77,6 +77,11 @@ namespace siren {
 		}
 
 		return ResultCode::InvalidHeader;
+	}
+
+	size_t WavDecoder::decode(std::span<float> dst) {
+
+		return size_t();
 	}
 }
 
