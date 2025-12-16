@@ -30,7 +30,7 @@ namespace siren {
 	class WavDecoder : public Decoder {
 	private:
 		uint16_t m_bitsPerSample = 0;
-		uint16_t m_blockAlign = 0;
+		uint16_t m_blockAlign = 0;	// Bytes per frame
 		size_t m_dataStartOffset = 0;
 
 		ResultCode decodeHeader();

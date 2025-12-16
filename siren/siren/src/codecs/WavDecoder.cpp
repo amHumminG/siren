@@ -1,5 +1,4 @@
 #include "siren/codecs/WavDecoder.h"
-#include <vector>
 
 namespace siren {
 	
@@ -80,8 +79,39 @@ namespace siren {
 	}
 
 	size_t WavDecoder::decode(std::span<float> dst) {
+		size_t samples = dst.size();
+		size_t framesToRead = samples / m_channelCount; // One float per channel
+		size_t bytesNeeded = framesToRead * m_blockAlign;
 
-		return size_t();
+		if (m_rawBuffer.size() < bytesNeeded) {
+			m_rawBuffer.resize(bytesNeeded);
+		}
+
+		size_t bytesRead = m_dataSource->read(std::span(m_rawBuffer.data(), bytesNeeded));
+		size_t framesRead = bytesRead / m_blockAlign;
+
+		if (m_bitsPerSample == 8) {
+			// 8-bit (0 -> 255)
+
+			const uint8_t* raw = reinterpret_cast<const uint8_t*>(m_rawBuffer.data());
+
+			for (size_t i = 0; i < framesRead * m_channelCount; i++) {
+				// Convert to float (-1.0 -> 1.0)
+				dst[i] = (raw[i] - 128.0f) / 128.0f;
+			}
+		}
+		else if (m_bitsPerSample == 16) {
+			// 16-bit (-32 768 -> 32 767)
+
+			const int16_t* raw = reinterpret_cast<const int16_t*>(m_rawBuffer.data());
+
+			for (size_t i = 0; i < framesRead * m_channelCount; i++) {
+				// Convert to float (-1.0 -> 1.0)
+				dst[i] = (raw[i] / 32768.0f);
+			}
+		}
+
+		return framesRead;
 	}
 }
 
