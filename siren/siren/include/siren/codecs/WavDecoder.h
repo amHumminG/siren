@@ -15,12 +15,12 @@ struct Chunk {
 };
 
 struct FormatChunk {
-	int16_t formatType;
-	int16_t channelCount;
-	int32_t sampleRate;
-	int32_t byteRate;
-	int16_t blockAlign;
-	int16_t bitsPerSample;
+	int16_t formatType;		// Type of format (1 is PCM)
+	int16_t channelCount;	// Number of Channels
+	int32_t sampleRate;		// Sample Rate (Number of Samples per second, or Hertz)
+	int32_t byteRate;		// (Sample Rate * BitsPerSample * Channels) / 8
+	int16_t blockAlign;		// (BitsPerSample * Channels) / 8
+	int16_t bitsPerSample;	// Bits per sample
 };
 
 #pragma pack(pop) // Enable padding
@@ -36,7 +36,7 @@ namespace siren {
 		ResultCode decodeHeader();
 
 	public:
-		WavDecoder(std::unique_ptr<DataSource> audioSource);
+		WavDecoder() = default;
 
 		[[nodiscard]] size_t decode(std::span<float> dst) override;
 		[[nodiscard]] ResultCode seek(size_t frameIndex) override;
