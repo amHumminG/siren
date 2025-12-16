@@ -30,6 +30,17 @@ namespace siren {
 					return ResultCode::InvalidHeader;
 				}
 
+				if (formatData.formatType != WAVE_FORMAT_PCM) {
+					return ResultCode::FormatNotSupported;
+				}
+
+				if ((formatData.bitsPerSample != 8) && (formatData.bitsPerSample != 16)) {
+					return ResultCode::FormatNotSupported;
+				}
+				// TODO: If support is added for other formats and bitsPerSample later on,
+				// this should be refactored into a function-pointer strategy pattern where
+				// we set a decoderoutine based on the format (m_decodeRoutine = &decode16Bit)
+
 				m_sampleRate = formatData.sampleRate;
 				m_channelCount = formatData.channelCount;
 

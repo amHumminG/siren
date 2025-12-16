@@ -11,6 +11,7 @@ namespace siren {
 		InvalidFile,
 		InvalidData,
 		InvalidHeader,
+		FormatNotSupported,
 		// more to come
 	};
 

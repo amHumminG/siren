@@ -25,6 +25,10 @@ struct FormatChunk {
 
 #pragma pack(pop) // Enable padding
 
+constexpr uint16_t WAVE_FORMAT_PCM = 0x001;
+constexpr uint16_t WAVE_FORMAT_IEEE_FLOAT = 0x0003;
+constexpr uint16_t WAVE_FORMAT_EXTENSIBLE = 0xFFFE;
+
 namespace siren {
 
 	class WavDecoder : public Decoder {
