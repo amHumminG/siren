@@ -93,6 +93,10 @@ namespace siren {
 
 	size_t WavDecoder::decode(std::span<float> dst) {
 		size_t samples = dst.size();
+		if (samples == 0) {
+			return 0;
+		}
+
 		size_t framesToRead = samples / m_channelCount; // One float per channel
 		size_t bytesNeeded = framesToRead * m_blockAlign;
 
