@@ -124,5 +124,15 @@ namespace siren {
 
 		return framesRead;
 	}
+
+	ResultCode WavDecoder::seek(size_t frameIndex) {
+		if (frameIndex > m_totalFrames) {
+			return ResultCode::OutOfBounds;
+		}
+
+		size_t byteOffset = m_dataStartOffset + (frameIndex * m_blockAlign);
+
+		return m_dataSource->seek(byteOffset);
+	}
 }
 
