@@ -131,7 +131,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="external\minaudio\miniaudio.h" />
     <ClInclude Include="include\siren\codecs\WavDecoder.h" />
     <ClInclude Include="include\siren\DataSource.h" />
     <ClInclude Include="include\siren\Decoder.h" />

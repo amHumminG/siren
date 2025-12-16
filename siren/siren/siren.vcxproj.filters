@@ -42,9 +42,6 @@
     <ClInclude Include="include\siren\codecs\WavDecoder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="external\minaudio\miniaudio.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\siren.cpp">
