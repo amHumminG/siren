@@ -37,6 +37,7 @@ namespace siren {
 		uint16_t m_blockAlign = 0;	// Bytes per frame
 		size_t m_dataStartOffset = 0;
 
+	protected:
 		ResultCode decodeHeader();
 
 	public:
