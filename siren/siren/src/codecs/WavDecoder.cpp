@@ -30,7 +30,7 @@ namespace siren {
 					return ResultCode::InvalidHeader;
 				}
 
-				if (formatData.formatType != WAVE_FORMAT_PCM) {
+				if (formatData.formatType != FORMAT_TYPE_PCM) {
 					return ResultCode::FormatNotSupported;
 				}
 
