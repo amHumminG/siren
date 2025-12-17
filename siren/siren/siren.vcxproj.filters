@@ -45,6 +45,9 @@
     <ClInclude Include="external\miniaudio\miniaudio.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\siren\DecoderFactory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\siren.cpp">
@@ -60,6 +63,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\codecs\WavDecoder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\DecoderFactory.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
