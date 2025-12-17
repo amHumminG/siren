@@ -2,7 +2,7 @@
 #include "siren/DecoderFactory.h"
 
 enum VoiceState {
-	Stopped,
+	Inactive,
 	Playing,
 	Paused
 };
@@ -13,7 +13,7 @@ namespace siren {
 	private:
 		std::unique_ptr<Decoder> decoder;
 
-		VoiceState m_state = VoiceState::Stopped;
+		VoiceState m_state = VoiceState::Inactive;
 		
 		float m_volume = 1.0f;
 		float m_pan = 0.0f;
