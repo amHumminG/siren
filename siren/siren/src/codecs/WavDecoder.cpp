@@ -80,8 +80,16 @@ namespace siren {
 				}
 
 				m_dataStartOffset = m_dataSource->tell();
-
+				
 				uint32_t dataSize = chunk.size;
+
+				// Verify data chunk size
+				size_t fileSize = m_dataSource->size();
+				size_t endOfDataChunk = m_dataStartOffset + dataSize;
+				if (endOfDataChunk > fileSize || dataSize == 0) {
+					return ResultCode::InvalidHeader;
+				}
+
 				size_t bytesPerSample = m_bitsPerSample / 8;
 				size_t frameSize = m_channelCount * bytesPerSample; // LR = one frame (stereo)
 				m_totalFrames = dataSize / frameSize;
