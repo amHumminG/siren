@@ -3,6 +3,9 @@
 namespace siren {
 	
 	ResultCode siren::WavDecoder::decodeHeader() {
+		// TODO: Implement support for Mono. For mono to stereo up-mixing,
+		// we will need an intermediate buffer to hold the raw mono before expanding it to stereo
+
 		// Verify data is a wav file
 		SignatureChunk signatureChunk;
 		if (m_dataSource->read(std::as_writable_bytes(std::span(&signatureChunk, 1))) != sizeof(signatureChunk)) {
@@ -43,6 +46,15 @@ namespace siren {
 
 				m_sampleRate = formatData.sampleRate;
 				m_channelCount = formatData.channelCount;
+
+				if (m_channelCount == 0) {
+					return ResultCode::InvalidHeader;
+				}
+
+				// Only supports stero as of now
+				if (m_channelCount != 2) {
+					return ResultCode::FormatNotSupported;
+				}
 
 				// Wav-unique
 				m_bitsPerSample = formatData.bitsPerSample;
