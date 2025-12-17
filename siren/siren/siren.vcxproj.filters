@@ -48,6 +48,9 @@
     <ClInclude Include="include\siren\DecoderFactory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\siren\Voice.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\siren.cpp">
