@@ -145,6 +145,7 @@
     <ClInclude Include="src\internal\log.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Voice.cpp" />
     <ClCompile Include="src\codecs\WavDecoder.cpp" />
     <ClCompile Include="src\DecoderFactory.cpp" />
     <ClCompile Include="src\io\FileDataSource.cpp" />
