@@ -10,23 +10,23 @@
 
 namespace siren {
 
-	Result<std::unique_ptr<Decoder>> DecoderFactory::CreateDecoder(const std::string& fileName) {
+	Result<std::unique_ptr<Decoder>> DecoderFactory::createDecoder(const std::string& fileName) {
 		auto source = std::make_unique<FileDataSource>(fileName);
 		if (!source->isValid()) {
 			return ResultCode::InvalidFile;
 		}
-		return CreateDecoder(std::move(source));
+		return createDecoder(std::move(source));
 	}
 
-	Result<std::unique_ptr<Decoder>> DecoderFactory::CreateDecoder(std::span<std::byte> fileInMemory) {
+	Result<std::unique_ptr<Decoder>> DecoderFactory::createDecoder(std::span<std::byte> fileInMemory) {
 		auto source = std::make_unique<MemoryDataSource>(fileInMemory);
 		if (!source->isValid()) {
 			return ResultCode::InvalidData;
 		}
-		return CreateDecoder(std::move(source));
+		return createDecoder(std::move(source));
 	}
 
-	Result<std::unique_ptr<Decoder>> DecoderFactory::CreateDecoder(std::unique_ptr<DataSource> source) {
+	Result<std::unique_ptr<Decoder>> DecoderFactory::createDecoder(std::unique_ptr<DataSource> source) {
 		// Read first four bytes of the data source
 		ResultCode result = source->seek(0);
 		if (result != ResultCode::Success) {
