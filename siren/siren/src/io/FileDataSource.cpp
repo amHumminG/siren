@@ -12,7 +12,7 @@ namespace siren {
 	}
 
 	bool FileDataSource::isValid() const {
-		return m_file.is_open();
+		return m_file.is_open() && m_fileSize > 0;
 	}
 
 	size_t FileDataSource::read(std::span<std::byte> dst) {
