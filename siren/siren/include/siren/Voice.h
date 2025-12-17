@@ -11,7 +11,7 @@ namespace siren {
 
 	class Voice {
 	private:
-		std::unique_ptr<Decoder> decoder;
+		std::unique_ptr<Decoder> m_decoder;
 
 		VoiceState m_state = VoiceState::Inactive;
 		
@@ -23,10 +23,11 @@ namespace siren {
 		Voice() = default;
 		~Voice() = default;
 
-		[[nodiscard]] ResultCode attachDecoder(std::unique_ptr<Decoder> decoder);
+		// TODO: Add documentation
 
+		void attachDecoder(std::unique_ptr<Decoder> decoder);
 
-		[[nodiscard]] size_t process(std::span<std::byte> dst);
+		void process(std::span<float> dst);
 
 		void play();
 		void pause();
