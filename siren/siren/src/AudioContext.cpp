@@ -1,5 +1,6 @@
 #include "siren/AudioContext.h"
 #include "internal/log.h"
+#include "siren/DecoderFactory.h"
 
 #define MINIAUDIO_IMPLEMENTATION
 #include "../external/miniaudio/miniaudio.h"
@@ -63,7 +64,31 @@ namespace siren {
 	}
 
 	std::shared_ptr<Voice> AudioContext::play(const Sound& sound) {
+		// Create voice with a decoder
+		auto voice = std::make_shared<Voice>();
+		if (sound.getType() == SoundType::Stream) {
+			Result result = DecoderFactory::createDecoder(sound.getPath());
+			if (!result.isOk()) {
+				SIREN_LOG_ERROR("AudioContext::play() Failed to create decoder. ERROR: " << int(result.error()));
+				return nullptr;
+			}
+			voice->attachDecoder(std::move(result.value()));
+		}
+		else { // Sound type == MemoryInternal or MemoryExternal
+			Result result = DecoderFactory::createDecoder(sound.getData());
+			if (!result.isOk()) {
+				SIREN_LOG_ERROR("AudioContext::play() Failed to create decoder. ERROR: " << int(result.error()));
+				return nullptr;
+			}
+			voice->attachDecoder(std::move(result.value()));
+		}
+		voice->play();
 
-		return std::shared_ptr<Voice>();
+		{ // Thread sensitive action
+			std::lock_guard<std::mutex> lock(m_mutex);
+			m_voiceRegistry.push_back(voice);
+		}
+
+		return voice;
 	}
 }
