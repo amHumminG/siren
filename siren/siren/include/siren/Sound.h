@@ -15,7 +15,7 @@ namespace siren {
 	class Sound {
 	private:
 		SoundType m_type;
-		bool m_valid;
+		bool m_valid = true;
 
 		std::string m_path; // Valid if m_type != MemoryExternal
 		std::vector<std::byte> m_internalData; // Valid if m_type == MemoryInternal
@@ -28,7 +28,7 @@ namespace siren {
 		/// @param path Path to the file
 		/// @return ResultCode::Success if file was successfully read into m_internalData,
 		/// otherwise false
-		ResultCode loadFromFile(const std::string& path);
+		void loadFromFile(const std::string& path);
 
 	public:
 		/// @brief Constructs a sound object for streaming from an audio file

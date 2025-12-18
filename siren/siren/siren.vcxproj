@@ -140,11 +140,13 @@
     <ClInclude Include="include\siren\io\MemoryDataSource.h" />
     <ClInclude Include="include\siren\Result.h" />
     <ClInclude Include="include\siren\siren.h" />
+    <ClInclude Include="include\siren\Sound.h" />
     <ClInclude Include="include\siren\Utils.h" />
     <ClInclude Include="include\siren\Voice.h" />
     <ClInclude Include="src\internal\log.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Sound.cpp" />
     <ClCompile Include="src\Voice.cpp" />
     <ClCompile Include="src\codecs\WavDecoder.cpp" />
     <ClCompile Include="src\DecoderFactory.cpp" />
