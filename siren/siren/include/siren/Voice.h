@@ -33,16 +33,15 @@ namespace siren {
 
 		void play();
 		void pause();
-		void stop(); // Should this have a return value?
+		void stop();
 
-		void setVolume(const float& value);
-		void setPan(const float& value);
-		void setLooping(const bool& value);
+		void setVolume(float value);
+		void setPan(float value);
+		void setLooping(bool value);
 
 		[[nodiscard]] float getVolume();
 		[[nodiscard]] float getPan();
 		[[nodiscard]] bool isLooping();
-
 		[[nodiscard]] bool isPlaying();
 	};
 }

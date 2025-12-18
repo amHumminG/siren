@@ -1,4 +1,5 @@
 #include "siren/Voice.h"
+#include <algorithm>
 
 namespace siren {
 
@@ -78,8 +79,55 @@ namespace siren {
 		}
 	}
 
+	void Voice::play() {
+		std::lock_guard<std::mutex> lock(m_mutex);
+		if (m_decoder) {
+			if (m_state == VoiceState::Inactive) {
+				m_decoder->seek(0);
+			}
+			m_state = VoiceState::Playing;
+		}
+	}
 
+	void Voice::pause() {
+		std::lock_guard<std::mutex> lock(m_mutex);
+		m_state = VoiceState::Paused;
+	}
+
+	void Voice::stop() {
+		std::lock_guard<std::mutex> lock(m_mutex);
+		if (m_decoder) {
+			m_decoder->seek(0);
+		}
+		m_state = VoiceState::Inactive;
+	}
+
+	void Voice::setVolume(float value) {
+		m_volume = std::clamp(value, 0.0f, 1.0f);
+	}
+
+	void Voice::setPan(float value) {
+		m_pan = std::clamp(value, -1.0f, 1.0f);
+	}
+
+	void Voice::setLooping(bool value) {
+		m_isLooping = value;
+	}
+
+	float Voice::getVolume() {
+		return m_volume;
+	}
+
+	float Voice::getPan() {
+		return m_pan;
+	}
+
+	bool Voice::isLooping() {
+		return m_isLooping;
+	}
+
+	bool Voice::isPlaying() {
+		return m_state == VoiceState::Playing;
+	}
 
 }
-
-
