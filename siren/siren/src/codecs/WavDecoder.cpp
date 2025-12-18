@@ -48,8 +48,8 @@ namespace siren {
 					return ResultCode::InvalidHeader;
 				}
 
-				// Only supports stero as of now
-				if (m_channelCount != 2) {
+				// Supports mono and stereo
+				if (m_channelCount > 2) {
 					return ResultCode::FormatNotSupported;
 				}
 
