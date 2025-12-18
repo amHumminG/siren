@@ -2,89 +2,105 @@
 #include "internal/log.h"
 #include <algorithm>
 #include <string>
+#include <array>
 
 namespace siren {
 
 	void Voice::attachDecoder(std::unique_ptr<Decoder> decoder) {
-		std::lock_guard<std::mutex> lock(m_mutex); // Lock
-
-		m_state = VoiceState::Inactive;
-		m_isLooping = false;
+		m_state.store(VoiceState::Inactive);
+		m_isLooping.store(false);
+		m_sampleRate = decoder->getSampleRate();
 		m_decoder = std::move(decoder);
 	}
 
-	void Voice::process(std::span<float> dst) {
-		// Has to be somewhat thread-safe
-
-		std::unique_lock<std::mutex> lock(m_mutex, std::try_to_lock);
-		if (!lock.owns_lock()) {
-			std::fill(dst.begin(), dst.end(), 0.0f);
-			return;
+	bool Voice::mix(std::span<float> dst) {
+		VoiceState state = m_state.load();
+		if (state == VoiceState::Inactive || !m_decoder) {
+			return false; // Dead
 		}
 
-		// TODO: Implement support for Mono. For mono to stereo up-mixing,
-		// we will need an intermediate buffer to hold the raw mono before expanding it to stereo
-
-		// Getting all variables at once (for thread safety)
-		float volume = m_volume;
-		float pan = m_pan;
-		bool isLooping = m_isLooping;
-		size_t channelCount = m_decoder->getChannelCount();
-
-		if (m_state != VoiceState::Playing || !m_decoder) {
-			std::fill(dst.begin(), dst.end(), 0.0f);
-			return;
+		if (state == VoiceState::Paused) {
+			return true; // Still alive
 		}
 
-		size_t framesRequested = dst.size() / channelCount;
+		// Handle seek requests
+		int64_t seekRequest = m_seekFrame.exchange(-1);
+		if (seekRequest >= 0 && m_decoder) {
+			m_decoder->seek(static_cast<size_t>(m_seekFrame.load()));
+		}
+
+		constexpr size_t BUFFER_FRAMES = 256;
+		std::array<float, BUFFER_FRAMES * 2> intermediateBuffer;
+
+		size_t framesRequested = dst.size() / 2;
 		size_t framesRead = 0;
+		size_t decoderChannelCount = m_decoder->getChannelCount();
+
+		float volume = m_volume.load();
+		float pan = m_pan.load();
+		bool isLooping = m_isLooping.load();
 
 		while (framesRead < framesRequested) {
 
-			size_t framesRemaining = framesRequested - framesRead;
-			size_t samplesRead = framesRead * channelCount;
-			size_t samplesRemaining = framesRemaining * channelCount;
+			size_t framesToDecode = std::min(framesRequested - framesRead, BUFFER_FRAMES);
+			std::span<float> bufferView(intermediateBuffer.data(), framesToDecode * decoderChannelCount);
 
-			std::span<float> buffer = dst.subspan(samplesRead, samplesRemaining);
-			framesRead += m_decoder->decode(buffer);
+			size_t framesDecoded = m_decoder->decode(bufferView);
+			size_t framesThisIteration = framesDecoded;
 
-			if (framesRead < framesRequested) {
+			if (framesDecoded < framesToDecode) {
 				// Hit EOF
-				if (m_isLooping) {
-					// Continue filling the buffer from the start
-					m_decoder->seek(0);
-					continue;
+				if (isLooping) {
+					// Start from beginning
+					if (m_decoder->seek(0) != ResultCode::Success) {
+						return false;
+					}
 				}
 				else {
-					// Fill rest of the buffer with silence
-					samplesRead = framesRead * channelCount;
-					std::fill(dst.begin() + samplesRead, dst.end(), 0.0f);
-					m_state = VoiceState::Inactive;
-					break;
+					m_state.store(VoiceState::Inactive); // Audio clip over
 				}
 			}
-		}
 
-		for (size_t i = 0; i < dst.size(); i++) {
-			// Apply volume
-			dst[i] *= volume;
+			// Mix and add to destination buffer
+			for (size_t i = 0; i < framesThisIteration; i++) {
+				float sampleL;
+				float sampleR;
 
-			if (channelCount == 2) {
-				// Apply pan
-				if (i % 2 == 0) { // Left
-					dst[i] *= (1.0 - pan);
+				if (decoderChannelCount == 1) {
+					// Mono
+					sampleL = intermediateBuffer[i];
+					sampleR = intermediateBuffer[i];
 				}
-				else { // Right
-					dst[i] *= (1.0 + pan);
+				else {
+					// Stereo
+					sampleL = intermediateBuffer[i * 2];
+					sampleR = intermediateBuffer[i * 2 + 1];
 				}
+
+				sampleL *= volume;
+				sampleR *= volume;
+
+				if (pan != 0.0f) {
+					sampleL *= (1.0 - pan);
+					sampleR *= (1.0 + pan);
+				}
+
+				size_t dstIndex = (framesRead + i) * 2;
+				dst[dstIndex]		+= sampleL;
+				dst[dstIndex + 1]	+= sampleR;
+			}
+
+			framesRead += framesThisIteration;
+			if (m_state.load() != VoiceState::Playing) {
+				break;
 			}
 		}
+		return m_state.load() != VoiceState::Inactive;
 	}
 
 	void Voice::play() {
-		std::lock_guard<std::mutex> lock(m_mutex);
 		if (m_decoder) {
-			if (m_state == VoiceState::Inactive) {
+			if (m_state.load() == VoiceState::Inactive) {
 				ResultCode result = m_decoder->seek(0);
 				if (result != ResultCode::Success) {
 					std::string error = std::to_string((int)result);
@@ -92,46 +108,52 @@ namespace siren {
 					return;
 				}
 			}
-			m_state = VoiceState::Playing;
+			m_state.store(VoiceState::Playing);
 		}
 	}
 
 	void Voice::pause() {
-		std::lock_guard<std::mutex> lock(m_mutex);
-		m_state = VoiceState::Paused;
+		m_state.store(VoiceState::Paused);
 	}
 
 	void Voice::stop() {
-		std::lock_guard<std::mutex> lock(m_mutex);
-		m_state = VoiceState::Inactive;
+		m_state.store(VoiceState::Inactive);
 	}
 
 	void Voice::setVolume(float value) {
-		m_volume = std::clamp(value, 0.0f, 1.0f);
+		m_volume.store(std::clamp(value, 0.0f, 1.0f));
 	}
 
 	void Voice::setPan(float value) {
-		m_pan = std::clamp(value, -1.0f, 1.0f);
+		m_pan.store(std::clamp(value, -1.0f, 1.0f));
 	}
 
 	void Voice::setLooping(bool value) {
-		m_isLooping = value;
+		m_isLooping.store(value);
+	}
+
+	void Voice::seek(float timePoint) {
+		if (m_state.load() == VoiceState::Inactive) {
+			return;
+		}
+		int64_t frame = static_cast<int64_t>(timePoint * m_sampleRate);
+		m_seekFrame.store(frame);
 	}
 
 	float Voice::getVolume() {
-		return m_volume;
+		return m_volume.load();
 	}
 
 	float Voice::getPan() const {
-		return m_pan;
+		return m_pan.load();
 	}
 
 	bool Voice::isLooping() const {
-		return m_isLooping;
+		return m_isLooping.load();
 	}
 
 	bool Voice::isPlaying() const {
-		return m_state == VoiceState::Playing;
+		return m_state.load() == VoiceState::Playing;
 	}
 
 }
