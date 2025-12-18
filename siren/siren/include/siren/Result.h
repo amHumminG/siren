@@ -43,6 +43,15 @@ namespace siren {
 			return std::get<T>(m_data);
 		}
 
+		// Get value
+		T& value() {
+			if (!isOk()) {
+				siren::utils::logError("Tried to access value of an error result");
+				assert(false);
+			}
+			return std::get<T>(m_data);
+		}
+
 		ResultCode error() const {
 			if (isOk()) {
 				return ResultCode::Success;
