@@ -1,5 +1,7 @@
 #pragma once
-#include "siren/DecoderFactory.h"
+#include "siren/Decoder.h"
+#include <atomic>
+#include <mutex>
 
 enum VoiceState {
 	Inactive,
@@ -11,13 +13,13 @@ namespace siren {
 
 	class Voice {
 	private:
+		std::mutex m_mutex;
 		std::unique_ptr<Decoder> m_decoder;
-
-		VoiceState m_state = VoiceState::Inactive;
 		
-		float m_volume = 1.0f;
-		float m_pan = 0.0f;
-		bool m_isLooping = false;
+		std::atomic<VoiceState> m_state{ VoiceState::Inactive };
+		std::atomic<float> m_volume{ 1.0f };
+		std::atomic<float> m_pan{ 0.0f };
+		std::atomic<float> m_isLooping{ false };
 
 	public:
 		Voice() = default;

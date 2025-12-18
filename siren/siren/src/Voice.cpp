@@ -3,11 +3,21 @@
 namespace siren {
 
 	void Voice::attachDecoder(std::unique_ptr<Decoder> decoder) {
+		std::lock_guard<std::mutex> lock(m_mutex); // Lock
+
+		m_state = VoiceState::Inactive;
+		m_isLooping = false;
 		m_decoder = std::move(decoder);
 	}
 
 	void Voice::process(std::span<float> dst) {
 		// Has to be somewhat thread-safe
+
+		std::unique_lock<std::mutex> lock(m_mutex, std::try_to_lock);
+		if (!lock.owns_lock()) {
+			std::fill(dst.begin(), dst.end(), 0.0f);
+			return;
+		}
 
 		// TODO: Implement support for Mono. For mono to stereo up-mixing,
 		// we will need an intermediate buffer to hold the raw mono before expanding it to stereo
@@ -19,7 +29,7 @@ namespace siren {
 		size_t channelCount = m_decoder->getChannelCount();
 
 		if (m_state != VoiceState::Playing || !m_decoder) {
-			std::fill_n(dst, dst.size(), 0.0f);
+			std::fill(dst.begin(), dst.end(), 0.0f);
 			return;
 		}
 
@@ -44,10 +54,8 @@ namespace siren {
 				}
 				else {
 					// Fill rest of the buffer with silence
-					framesRemaining = framesRequested - framesRead;
 					samplesRead = framesRead * channelCount;
-					samplesRemaining = framesRemaining * channelCount;
-					std::fill_n(dst.data() + (samplesRead), samplesRemaining, 0.0f);
+					std::fill(dst.begin() + samplesRead, dst.end(), 0.0f);
 					m_state = VoiceState::Inactive;
 					break;
 				}
