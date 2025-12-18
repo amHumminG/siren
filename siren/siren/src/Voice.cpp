@@ -88,7 +88,7 @@ namespace siren {
 				ResultCode result = m_decoder->seek(0);
 				if (result != ResultCode::Success) {
 					std::string error = std::to_string((int)result);
-					SIREN_LOG_ERROR("Voice::Play() Failed to seek. ERROR: " << (int)result);
+					SIREN_LOG_ERROR("Voice::play() Failed to seek. ERROR: " << (int)result);
 					return;
 				}
 			}
