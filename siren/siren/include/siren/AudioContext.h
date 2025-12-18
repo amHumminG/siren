@@ -15,7 +15,7 @@ namespace siren {
 		std::mutex m_mutex;
 		std::vector<std::shared_ptr<Voice>> m_voiceRegistry;
 
-		static void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount);
+		static void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, unsigned int frameCount);
 
 	public:
 		AudioContext();

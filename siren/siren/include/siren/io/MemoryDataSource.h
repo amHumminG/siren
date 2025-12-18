@@ -13,7 +13,7 @@ namespace siren {
 
 	public:
 		/// @brief Creates a data source from a buffer in memory
-		MemoryDataSource(std::span<std::byte> buffer);
+		MemoryDataSource(std::span<const std::byte> buffer);
 
 		/// @brief Creates a data source form a buffer in memory
 		/// @param ptr Pointer to the buffer

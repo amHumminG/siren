@@ -2,7 +2,7 @@
 
 namespace siren {
 
-	MemoryDataSource::MemoryDataSource(std::span<std::byte> buffer)
+	MemoryDataSource::MemoryDataSource(std::span<const std::byte> buffer)
 		: m_data(buffer.data()), m_size(buffer.size()) {}
 
 	MemoryDataSource::MemoryDataSource(const void* ptr, size_t size) 

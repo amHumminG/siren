@@ -18,7 +18,7 @@ namespace siren {
 		return createDecoder(std::move(source));
 	}
 
-	Result<std::unique_ptr<Decoder>> DecoderFactory::createDecoder(std::span<std::byte> fileInMemory) {
+	Result<std::unique_ptr<Decoder>> DecoderFactory::createDecoder(std::span<const std::byte> fileInMemory) {
 		auto source = std::make_unique<MemoryDataSource>(fileInMemory);
 		if (!source->isValid()) {
 			return ResultCode::InvalidData;
