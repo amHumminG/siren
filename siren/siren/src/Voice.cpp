@@ -122,15 +122,15 @@ namespace siren {
 		return m_volume;
 	}
 
-	float Voice::getPan() {
+	float Voice::getPan() const {
 		return m_pan;
 	}
 
-	bool Voice::isLooping() {
+	bool Voice::isLooping() const {
 		return m_isLooping;
 	}
 
-	bool Voice::isPlaying() {
+	bool Voice::isPlaying() const {
 		return m_state == VoiceState::Playing;
 	}
 

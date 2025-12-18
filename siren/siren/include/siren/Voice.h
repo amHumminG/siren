@@ -3,7 +3,7 @@
 #include <atomic>
 #include <mutex>
 
-enum VoiceState {
+enum class VoiceState {
 	Inactive,
 	Playing,
 	Paused
@@ -29,17 +29,14 @@ namespace siren {
 		/// @param decoder The decoder of an audio source
 		void attachDecoder(std::unique_ptr<Decoder> decoder);
 
-		/// @brief Fills the destination buffer with audio data
-		/// 
-		/// If voice state = Playing: buffer will be filled with decoded audio data
-		/// 
-		/// If voice state = Paused/Inactive: buffer will be filled with silence
+		/// @brief Fills the destination buffer with decoded audio data if
+		/// state is Playing, otherwise fills buffer with silence
 		/// @param dst Destination buffer
 		void process(std::span<float> dst);
 
-		/// @brief Sets voice state to Playing.
+		/// @brief Sets voice state to Playing
 		///
-		/// If voice state = Inactive: Resets audio cursor to start
+		/// If voice state is Inactive, it will play from the beginning
 		void play();
 
 		/// @brief Sets voice state to Paused
@@ -61,12 +58,12 @@ namespace siren {
 		[[nodiscard]] float getVolume();
 
 		/// @return Current pan
-		[[nodiscard]] float getPan();
+		[[nodiscard]] float getPan() const;
 
 		/// @return True if voice is looping, otherwise false
-		[[nodiscard]] bool isLooping();
+		[[nodiscard]] bool isLooping() const;
 
 		/// @return True if voice state = Playing, otherwise false
-		[[nodiscard]] bool isPlaying();
+		[[nodiscard]] bool isPlaying() const;
 	};
 }
