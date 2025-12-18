@@ -1,5 +1,7 @@
 #include "siren/Voice.h"
+#include "internal/log.h"
 #include <algorithm>
+#include <string>
 
 namespace siren {
 
@@ -83,7 +85,12 @@ namespace siren {
 		std::lock_guard<std::mutex> lock(m_mutex);
 		if (m_decoder) {
 			if (m_state == VoiceState::Inactive) {
-				m_decoder->seek(0);
+				ResultCode result = m_decoder->seek(0);
+				if (result != ResultCode::Success) {
+					std::string error = std::to_string((int)result);
+					SIREN_LOG_ERROR("Voice::Play() Failed to seek. ERROR: " << (int)result);
+					return;
+				}
 			}
 			m_state = VoiceState::Playing;
 		}
@@ -96,9 +103,6 @@ namespace siren {
 
 	void Voice::stop() {
 		std::lock_guard<std::mutex> lock(m_mutex);
-		if (m_decoder) {
-			m_decoder->seek(0);
-		}
 		m_state = VoiceState::Inactive;
 	}
 
