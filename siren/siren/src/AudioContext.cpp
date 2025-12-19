@@ -108,12 +108,16 @@ namespace siren {
 			return nullptr;
 		}
 		auto voice = std::make_shared<Voice>();
+		uint32_t sampleRate = 0;
+		size_t totalFrames = 0;
 		if (sound.getType() == SoundType::Stream) {
 			Result result = DecoderFactory::createDecoder(sound.getPath());
 			if (!result.isOk()) {
 				SIREN_LOG_ERROR("AudioContext::play() Failed to create decoder. ERROR: " << int(result.error()));
 				return nullptr;
 			}
+			sampleRate = result.value()->getSampleRate();
+			totalFrames = result.value()->getTotalFrames();
 			voice->attachDecoder(std::move(result.value()));
 		}
 		else { // Sound type == MemoryInternal or MemoryExternal
@@ -122,9 +126,13 @@ namespace siren {
 				SIREN_LOG_ERROR("AudioContext::play() Failed to create decoder. ERROR: " << int(result.error()));
 				return nullptr;
 			}
+			sampleRate = result.value()->getSampleRate();
+			totalFrames = result.value()->getTotalFrames();
 			voice->attachDecoder(std::move(result.value()));
 		}
 		voice->play();
+		size_t seconds = totalFrames / sampleRate;
+		SIREN_LOG_INFO("Playing sound [" << sound.getPath() << ", " << seconds / 60 << "m " << seconds % 60 << "s]");
 
 		auto newNode = std::make_unique<PendingVoiceNode>();
 		newNode->voice = voice;
