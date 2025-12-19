@@ -87,7 +87,6 @@ namespace siren {
 
 	bool AudioContext::deinit() {
 		if (!m_initialized) {
-			SIREN_LOG_INFO("AudioContext: Uninitialized")
 			return true;
 		}
 
@@ -104,6 +103,10 @@ namespace siren {
 
 	std::shared_ptr<Voice> AudioContext::play(const Sound& sound) {
 		// Create voice with a decoder
+		if (!sound.isValid()) {
+			SIREN_LOG_ERROR("AudioContext::play() Invalid sound");
+			return nullptr;
+		}
 		auto voice = std::make_shared<Voice>();
 		if (sound.getType() == SoundType::Stream) {
 			Result result = DecoderFactory::createDecoder(sound.getPath());
