@@ -23,6 +23,8 @@ namespace siren {
 		std::atomic<int64_t> m_seekFrame{ -1 }; // Seek request flag (-1 = No pending seek)
 		uint32_t m_sampleRate = 0; // Stored to be used for frame to seconds conversion
 
+		std::string m_tag; // Defaults to the tag that the sound held when this voice was constructed
+
 	public:
 		Voice() = default;
 		~Voice() = default;
@@ -58,6 +60,12 @@ namespace siren {
 
 		/// @param value New value
 		void setLooping(bool value);
+
+		/// @param tag The tag given to the voice
+		void setTag(const std::string& tag);
+
+		/// @return The tag given to the voice
+		const std::string& getTag();
 
 		/// @brief Sends a request to seek to a given time point
 		/// @param timePoint Represents the position (in seconds) to jump to

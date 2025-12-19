@@ -138,7 +138,17 @@ namespace siren {
 		m_isLooping.store(value);
 	}
 
+	void Voice::setTag(const std::string& tag) {
+		m_tag = tag;
+	}
+
+	const std::string& Voice::getTag() {
+		return m_tag;
+	}
+
 	void Voice::seek(float timePoint) {
+		// TODO: Check if timePoint is out of bounds
+		// This will require that we store totalFrames in voice as a memeber variable
 		if (m_state.load() == VoiceState::Inactive) {
 			return;
 		}

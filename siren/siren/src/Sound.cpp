@@ -5,8 +5,8 @@
 
 namespace siren {
 
-	Sound::Sound(SoundType type) 
-		: m_type(type) {
+	Sound::Sound(SoundType type, const std::string& tag)
+		: m_type(type), m_tag(tag) {
 	}
 
 	void Sound::loadFromFile(const std::string& path) {
@@ -36,8 +36,9 @@ namespace siren {
 		return;
 	}
 
-	Sound Sound::Stream(const std::string& path) {
-		Sound sound(SoundType::Stream);
+	Sound Sound::Stream(const std::string& path, const std::string& tag) {
+		std::string finalTag = tag.empty() ? path : tag;
+		Sound sound(SoundType::Stream, tag);
 		sound.m_path = path;
 
 		if (!std::filesystem::exists(path)) {
@@ -48,16 +49,17 @@ namespace siren {
 		return sound;
 	}
 
-	Sound Sound::Internal(const std::string& path) {
-		Sound sound(SoundType::MemoryInternal);
+	Sound Sound::Internal(const std::string& path, const std::string& tag) {
+		std::string finalTag = tag.empty() ? path : tag;
+		Sound sound(SoundType::MemoryInternal, finalTag);
 		sound.m_path = path;
 
 		sound.loadFromFile(path);
 		return sound;
 	}
 
-	Sound Sound::External(std::span<const std::byte> externalData) {
-		Sound sound(SoundType::MemoryExternal);
+	Sound Sound::External(std::span<const std::byte> externalData, const std::string& tag) {
+		Sound sound(SoundType::MemoryExternal, tag);
 
 		if (externalData.empty()) {
 			SIREN_LOG_ERROR("Sound::External Invalid buffer (empty)");
@@ -76,6 +78,10 @@ namespace siren {
 
 	SoundType Sound::getType() const {
 		return m_type;
+	}
+
+	const std::string& Sound::getTag() const {
+		return m_tag;
 	}
 
 	const std::string& Sound::getPath() const {

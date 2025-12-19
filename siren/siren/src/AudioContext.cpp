@@ -130,9 +130,10 @@ namespace siren {
 			totalFrames = result.value()->getTotalFrames();
 			voice->attachDecoder(std::move(result.value()));
 		}
+		voice->setTag(sound.getTag());
 		voice->play();
 		size_t seconds = totalFrames / sampleRate;
-		SIREN_LOG_INFO("Playing sound [" << sound.getPath() << ", " << seconds / 60 << "m " << seconds % 60 << "s]");
+		SIREN_LOG_INFO("Playing sound [" << voice->getTag() << ", " << seconds / 60 << "m " << seconds % 60 << "s]");
 
 		auto newNode = std::make_unique<PendingVoiceNode>();
 		newNode->voice = voice;
