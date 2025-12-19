@@ -154,7 +154,6 @@
     <ClCompile Include="src\DecoderFactory.cpp" />
     <ClCompile Include="src\io\FileDataSource.cpp" />
     <ClCompile Include="src\io\MemoryDataSource.cpp" />
-    <ClCompile Include="src\siren.cpp" />
     <ClCompile Include="src\Utils.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
