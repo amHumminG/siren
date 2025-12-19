@@ -49,6 +49,14 @@ namespace siren {
 
 	AudioContext::~AudioContext() {
 		deinit();
+
+		// Clean up voice inbox
+		PendingVoiceNode* node = m_inboxHead.exchange(nullptr);
+		while (node != nullptr) {
+			PendingVoiceNode* next = node->next;
+			delete node;
+			node = next;
+		}
 	}
 
 	bool AudioContext::init() {
