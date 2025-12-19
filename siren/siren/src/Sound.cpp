@@ -5,6 +5,10 @@
 
 namespace siren {
 
+	Sound::Sound(SoundType type) 
+		: m_type(type) {
+	}
+
 	void Sound::loadFromFile(const std::string& path) {
 		std::ifstream in(path, std::ios::binary | std::ios::ate);
 		if (!in.is_open()) {
