@@ -6,10 +6,10 @@
 	
 	// Macro prints
 	#define SIREN_LOG_ERROR(msg) \
-		std::cerr << "[Siren Error] " << msg << " (" << __FILE__ << ":" << __LINE__ << ")" << std::endl;
+		std::cerr << "[SIREN ERROR] " << msg << " (" << __FILE__ << ":" << __LINE__ << ")" << std::endl;
 
 	#define SIREN_LOG_INFO(msg) \
-		std::cout << "[Siren Info] " << msg << std::endl;
+		std::cout << "[SIREN INFO] " << msg << std::endl;
 
 #else
 	// Release mode
