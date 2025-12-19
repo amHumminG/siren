@@ -3,6 +3,11 @@
 #include <algorithm>
 #include <string>
 #include <array>
+#include <cmath>
+
+#ifndef M_PI_2
+#define M_PI_2 1.57079632679489661923
+#endif
 
 namespace siren {
 
@@ -39,6 +44,12 @@ namespace siren {
 		float volume = m_volume.load();
 		float pan = m_pan.load();
 		bool isLooping = m_isLooping.load();
+
+		float panNormalized = (pan + 1.0f) * 0.5f;
+		float angle = panNormalized * static_cast<float>(M_PI_2); // Angle between 0 and PI/2 radians
+
+		float gainL = std::cos(angle) * volume;
+		float gainR = std::sin(angle) * volume;
 
 		while (framesRead < framesRequested) {
 
@@ -77,13 +88,8 @@ namespace siren {
 					sampleR = intermediateBuffer[i * 2 + 1];
 				}
 
-				sampleL *= volume;
-				sampleR *= volume;
-
-				if (pan != 0.0f) {
-					sampleL *= (1.0 - pan);
-					sampleR *= (1.0 + pan);
-				}
+				sampleL *= gainL;
+				sampleR *= gainR;
 
 				size_t dstIndex = (framesRead + i) * 2;
 				dst[dstIndex]		+= sampleL;

@@ -23,8 +23,8 @@ int main() {
 		return -1;
 	}
 	std::shared_ptr<Voice> voice = context.play(sound);
-	std::this_thread::sleep_for(std::chrono::milliseconds(100));
-	std::shared_ptr<Voice> voice2 = context.play(sound);
+	//std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	//std::shared_ptr<Voice> voice2 = context.play(sound);
 
 	// Test panning
 	float increment = 0.002;
@@ -37,7 +37,7 @@ int main() {
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
 
-	getchar();
+	std::cin.get();
 
 	context.deinit();
 
