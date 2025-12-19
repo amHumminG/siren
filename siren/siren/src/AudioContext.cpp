@@ -8,8 +8,39 @@
 
 namespace siren {
 
-	void AudioContext::data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount) {
-		// Uh oh
+	void AudioContext::data_callback(ma_device* pDevice, void* pOutput, const void* pInput, uint32_t frameCount) {
+		AudioContext* context = static_cast<AudioContext*>(pDevice->pUserData);
+		if (!context) {
+			return;
+		}
+
+		float* outBuffer = static_cast<float*>(pOutput);
+		size_t samplesRequested = frameCount * 2; // Stereo output
+
+		std::fill_n(outBuffer, samplesRequested, 0.0f); // Silence baseline
+
+		// Process pending voices
+		PendingVoiceNode* rawList = context->m_inboxHead.exchange(nullptr); // Get inbox
+		while (rawList != nullptr) {
+			std::unique_ptr<PendingVoiceNode> node(rawList);
+			rawList = node->next;
+			context->m_voiceRegistry.push_back(std::move(node->voice));
+		}
+
+		std::span<float> outBufferView(outBuffer, samplesRequested);
+		auto& voices = context->m_voiceRegistry;
+
+		for (auto it = voices.begin(); it != voices.end(); ) {
+			auto& voice = *it;
+
+			bool alive = voice->mix(outBufferView);
+			if (!alive) {
+				it = voices.erase(it);
+			}
+			else {
+				it++;
+			}
+		}
 	}
 
 	AudioContext::AudioContext() {
