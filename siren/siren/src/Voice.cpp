@@ -31,7 +31,7 @@ namespace siren {
 		// Handle seek requests
 		int64_t seekRequest = m_seekFrame.exchange(-1);
 		if (seekRequest >= 0 && m_decoder) {
-			m_decoder->seek(static_cast<size_t>(m_seekFrame.load()));
+			m_decoder->seek(static_cast<size_t>(seekRequest));
 		}
 
 		constexpr size_t BUFFER_FRAMES = 256;
