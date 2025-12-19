@@ -84,11 +84,17 @@ namespace siren {
 		}
 		voice->play();
 
-		{ // Thread sensitive action
-			std::lock_guard<std::mutex> lock(m_mutex);
-			m_voiceRegistry.push_back(voice);
-		}
+		auto newNode = std::make_unique<PendingVoiceNode>();
+		newNode->voice = voice;
 
-		return voice;
+		PendingVoiceNode* rawNode = newNode.get();
+		PendingVoiceNode* head = m_inboxHead.load();
+		
+		do {
+			rawNode->next = head;
+		} while (!m_inboxHead.compare_exchange_weak(head, rawNode));
+
+		newNode.release(); // Pointer is now owned by inbox
+		return voice; 
 	}
 }
