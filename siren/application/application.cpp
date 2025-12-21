@@ -28,10 +28,11 @@ int main() {
 
 	std::shared_ptr<Voice> voice1 = context.play(whiteFerrari);
 	//std::this_thread::sleep_for(std::chrono::milliseconds(100));
-	//std::shared_ptr<Voice> voice2 = context.play(sound);
+	//std::shared_ptr<Voice> voice2 = context.play(whiteFerrari);
 
 	// Test panning
-	float increment = 0.002;
+	float increment1 = 0.002;
+	float increment2 = -increment1 * 2;
 
 	using Clock = std::chrono::steady_clock;
 	auto lastTime = Clock::now();
@@ -54,19 +55,22 @@ int main() {
 			pipeTimer -= 5.0f;
 		}
 
-		seekTimer += deltaTime;
-		if (seekTimer >= 3.0f) {
-			voice1->seek(44400.0f);
+		//seekTimer += deltaTime;
+		//if (seekTimer >= 3.0f) {
+		//	voice1->seek(44400.0f);
 
-			seekTimer -= 3.0f;
-		}
+		//	seekTimer -= 3.0f;
+		//}
 
 		if (voice1->isPlaying()) {
-			float currentPan = voice1->getPan();
-			if (currentPan < -0.9 || currentPan > 0.9) {
-				increment = -increment;
+			float currentPan1 = voice1->getPan();
+			//float currentPan2 = voice2->getPan();
+			if (currentPan1 < -0.9 || currentPan1 > 0.9) {
+				increment1 = -increment1;
+				increment2 = -increment2;
 			}
-			voice1->setPan(currentPan + increment);
+			voice1->setPan(currentPan1 + increment1);
+			//voice2->setPan(currentPan2 + increment2);
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
 	}
