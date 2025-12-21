@@ -3,8 +3,7 @@
 
 namespace siren {
 
-	AudioBus::AudioBus(const std::string& name) 
-		: m_name(name) {
+	AudioBus::AudioBus() {
 		m_buffer.reserve(MAX_BUFFER_SIZE);
 	}
 
@@ -20,6 +19,10 @@ namespace siren {
 		}
 
 		std::fill(m_buffer.begin(), m_buffer.end(), 0.0f);
+	}
+
+	void AudioBus::setVolume(float value) {
+		m_volume.store(std::clamp(value, 0.0f, 1.0f));
 	}
 
 

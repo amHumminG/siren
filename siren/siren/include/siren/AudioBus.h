@@ -7,18 +7,19 @@ namespace siren {
 
 	class AudioBus {
 	public:
-		std::string m_name;
-
 		static constexpr size_t MAX_BUFFER_SIZE = 8192 * 2; // Stereo
 		std::vector<float> m_buffer;
 
 		std::atomic<float> m_volume = 1.0f;
 
-		AudioBus(const std::string& name);
+		AudioBus();
 
 		/// @brief Prepares the bus buffer to be mixed
 		/// @param frameCount The amount of frames requested by the audio callback
 		/// @param channelCount The amount of channels of the audio output
 		void prepare(size_t frameCount, size_t channelCount);
+
+		/// @param value New volume (clamped between 0.0f and 1.0f)
+		void setVolume(float value);
 	};
 }

@@ -16,11 +16,15 @@ namespace siren {
 
 		float* outBuffer = static_cast<float*>(pOutput);
 		size_t channelCount = static_cast<size_t>(pDevice->playback.channels);
+		size_t requestedSamples = frameCount * channelCount;
 
 		// Prepare final output buffer and bus buffers
-		std::fill_n(outBuffer, frameCount * channelCount, 0.0f); // Silence baseline
-		context->m_sfxBus.prepare(frameCount, channelCount);
-		context->m_musicBus.prepare(frameCount, channelCount);
+		std::fill_n(outBuffer, requestedSamples, 0.0f); // Silence baseline
+
+		std::shared_lock<std::shared_mutex> lock(context->m_busMutex);
+		for (auto& [name, bus] : context->m_busRegistry) {
+			bus->prepare(frameCount, channelCount);
+		}
 
 		// Process pending voices
 		PendingVoiceNode* rawList = context->m_inboxHead.exchange(nullptr); // Get inbox
@@ -42,22 +46,42 @@ namespace siren {
 				it++;
 			}
 		}
+				
+		auto masterIt = context->m_busRegistry.find("Master");
+		if (masterIt == context->m_busRegistry.end()) {
+			return;
+		}
+		AudioBus* masterBus = masterIt->second.get();
 
-		float sfxVolume = context->m_sfxBus.m_volume;
-		for (size_t i = 0; i < context->m_sfxBus.m_buffer.size(); i++) {
-			outBuffer[i] += context->m_sfxBus.m_buffer[i] * sfxVolume;
+		for (auto& [name, bus] : context->m_busRegistry) {
+			if (bus.get() != masterBus) {
+				float busVolume = bus->m_volume;
+				for (size_t i = 0; i < bus->m_buffer.size(); i++) {
+					outBuffer[i] += masterBus->m_buffer[i] * busVolume;
+				}
+			}
 		}
 
-		float musicVolume = context->m_musicBus.m_volume;
-		for (size_t i = 0; i < context->m_musicBus.m_buffer.size(); i++) {
-			outBuffer[i] += context->m_musicBus.m_buffer[i] * musicVolume;
+		float masterVolume = masterBus->m_volume;
+		for (size_t i = 0; i < requestedSamples; i++) {
+			outBuffer[i] = masterBus->m_buffer[i] * masterVolume;
+		}
+	}
+
+	AudioBus* AudioContext::getBus(const std::string& busName) {
+		std::shared_lock<std::shared_mutex> lock(m_busMutex);
+
+		auto it = m_busRegistry.find(busName);
+		if (it == m_busRegistry.end()) {
+			return nullptr;
 		}
 
-		// TODO: Add master volume
+		return it->second.get();
 	}
 
 	AudioContext::AudioContext() {
 		m_device = std::make_unique<ma_device>();
+		m_busRegistry["Master"] = std::make_unique<AudioBus>();
 	}
 
 	AudioContext::~AudioContext() {
@@ -114,7 +138,33 @@ namespace siren {
 		return true;
 	}
 
-	std::shared_ptr<Voice> AudioContext::play(const Sound& sound) {
+	bool AudioContext::createBus(const std::string& busName) {
+		std::unique_lock<std::shared_mutex> lock(m_busMutex);
+
+		auto it = m_busRegistry.find(busName);
+		if (it != m_busRegistry.end()) {
+			SIREN_LOG_ERROR("AudioContext::createBus() Bus with name: " << busName << " already exists");
+			return false;
+		}
+
+		auto bus = std::make_unique<AudioBus>();
+		m_busRegistry[busName] = std::move(bus);
+
+		return true;
+	}
+
+	bool AudioContext::setBusVolume(const std::string& busName, float volume) {
+		AudioBus* bus = getBus(busName);
+		if (bus == nullptr) {
+			SIREN_LOG_WARNING("AudioContext::setBusVolume() No bus with name: " << busName << " exists");
+			return false;
+		}
+
+		bus->setVolume(volume);
+		return true;
+	}
+
+	std::shared_ptr<Voice> AudioContext::play(const Sound& sound, const std::string& busName) {
 		// Create voice with a decoder
 		if (!sound.isValid()) {
 			SIREN_LOG_ERROR("AudioContext::play() Invalid sound");
@@ -144,7 +194,16 @@ namespace siren {
 			voice->attachDecoder(std::move(result.value()));
 		}
 		voice->setTag(sound.getTag());
-		voice->setBus(&m_musicBus); // TODO: make this dynamic
+		AudioBus* bus = getBus(busName);
+		if (bus == nullptr) {
+			SIREN_LOG_WARNING("AudioContext::Play() No bus with name: " << busName << " exists. Defaulting to Master");
+			bus = getBus("Master");
+		}
+		if (bus == nullptr) { // Default to master bus if bus was not found
+			SIREN_LOG_ERROR("AudioContext::Play() Master bus does not exist");
+			return nullptr;
+		}
+		voice->setBus(bus);
 		voice->play();
 
 		size_t seconds = totalFrames / sampleRate;

@@ -3,7 +3,8 @@
 #include "siren/Voice.h"
 #include "siren/Sound.h"
 #include <vector>
-#include <mutex>
+#include <unordered_map>
+#include <shared_mutex>
 
 struct ma_device;
 
@@ -14,8 +15,8 @@ namespace siren {
 		bool m_initialized = false;
 		std::unique_ptr<ma_device> m_device;
 
-		AudioBus m_sfxBus{ "SFX" };
-		AudioBus m_musicBus{ "Music" };
+		std::unordered_map<std::string, std::unique_ptr<AudioBus>> m_busRegistry;
+		std::shared_mutex m_busMutex;
 
 		struct PendingVoiceNode {
 			std::shared_ptr<Voice> voice;
@@ -33,6 +34,8 @@ namespace siren {
 		/// @param frameCount The number of frames requested by the audio device
 		static void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, uint32_t frameCount);
 
+		AudioBus* getBus(const std::string& busName);
+
 	public:
 		AudioContext();
 		~AudioContext();
@@ -45,9 +48,13 @@ namespace siren {
 		/// @return True if deinitialization was successful, otherwise false
 		bool deinit();
 
+		bool createBus(const std::string& busName);
+
+		bool setBusVolume(const std::string& busName, float volume);
+
 		/// @brief Plays a sound
 		/// @param sound The sound to be played
 		/// @return A shared pointer to the voice that has been created to play the sound
-		std::shared_ptr<Voice> play(const Sound& sound);
+		std::shared_ptr<Voice> play(const Sound& sound, const std::string& busName="Master");
 	};
 }

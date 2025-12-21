@@ -135,10 +135,6 @@ namespace siren {
 		m_bus = bus;
 	}
 
-	void Voice::setVolume(float value) {
-		m_volume.store(std::clamp(value, 0.0f, 1.0f));
-	}
-
 	void Voice::setPan(float value) {
 		m_pan.store(std::clamp(value, -1.0f, 1.0f));
 	}

@@ -58,9 +58,6 @@ namespace siren {
 		/// @param bus The bus that the voice will write to
 		void setBus(AudioBus* bus);
 
-		/// @param value New volume (clamped between 0.0f and 1.0f)
-		void setVolume(float value);
-
 		/// @param value New pan (clamped between -1.0f and 1.0f)
 		void setPan(float value);
 
