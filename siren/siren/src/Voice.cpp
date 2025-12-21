@@ -1,5 +1,6 @@
 #include "siren/Voice.h"
 #include "internal/log.h"
+#include "siren/AudioBus.h"
 #include <algorithm>
 #include <string>
 #include <array>
@@ -18,7 +19,7 @@ namespace siren {
 		m_decoder = std::move(decoder);
 	}
 
-	bool Voice::mix(std::span<float> dst) {
+	bool Voice::mix() {
 		VoiceState state = m_state.load();
 		if (state == VoiceState::Inactive || !m_decoder) {
 			return false; // Dead
@@ -34,6 +35,11 @@ namespace siren {
 			m_decoder->seek(static_cast<size_t>(seekRequest));
 		}
 
+		if (!m_bus) {
+			return false;
+		}
+		std::span<float> dst = m_bus->m_buffer;
+
 		constexpr size_t BUFFER_FRAMES = 256;
 		std::array<float, BUFFER_FRAMES * 2> intermediateBuffer;
 
@@ -41,15 +47,14 @@ namespace siren {
 		size_t framesRead = 0;
 		size_t decoderChannelCount = m_decoder->getChannelCount();
 
-		float volume = m_volume.load();
 		float pan = m_pan.load();
 		bool isLooping = m_isLooping.load();
 
 		float panNormalized = (pan + 1.0f) * 0.5f;
 		float angle = panNormalized * static_cast<float>(M_PI_2); // Angle between 0 and PI/2 radians
 
-		float gainL = std::cos(angle) * volume;
-		float gainR = std::sin(angle) * volume;
+		float gainL = std::cos(angle);
+		float gainR = std::sin(angle);
 
 		while (framesRead < framesRequested) {
 
@@ -124,6 +129,10 @@ namespace siren {
 
 	void Voice::stop() {
 		m_state.store(VoiceState::Inactive);
+	}
+
+	void Voice::setBus(AudioBus* bus) {
+		m_bus = bus;
 	}
 
 	void Voice::setVolume(float value) {

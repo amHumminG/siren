@@ -1,4 +1,5 @@
 #pragma once
+#include "siren/AudioBus.h"
 #include "siren/Voice.h"
 #include "siren/Sound.h"
 #include <vector>
@@ -12,6 +13,9 @@ namespace siren {
 	private:
 		bool m_initialized = false;
 		std::unique_ptr<ma_device> m_device;
+
+		AudioBus m_sfxBus{ "SFX" };
+		AudioBus m_musicBus{ "Music" };
 
 		struct PendingVoiceNode {
 			std::shared_ptr<Voice> voice;

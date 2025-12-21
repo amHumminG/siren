@@ -15,9 +15,12 @@ namespace siren {
 		}
 
 		float* outBuffer = static_cast<float*>(pOutput);
-		size_t samplesRequested = frameCount * 2; // Stereo output
+		size_t channelCount = static_cast<size_t>(pDevice->playback.channels);
 
-		std::fill_n(outBuffer, samplesRequested, 0.0f); // Silence baseline
+		// Prepare final output buffer and bus buffers
+		std::fill_n(outBuffer, frameCount * channelCount, 0.0f); // Silence baseline
+		context->m_sfxBus.prepare(frameCount, channelCount);
+		context->m_musicBus.prepare(frameCount, channelCount);
 
 		// Process pending voices
 		PendingVoiceNode* rawList = context->m_inboxHead.exchange(nullptr); // Get inbox
@@ -27,13 +30,11 @@ namespace siren {
 			context->m_voiceRegistry.push_back(std::move(node->voice));
 		}
 
-		std::span<float> outBufferView(outBuffer, samplesRequested);
 		auto& voices = context->m_voiceRegistry;
-
 		for (auto it = voices.begin(); it != voices.end(); ) {
 			auto& voice = *it;
 
-			bool alive = voice->mix(outBufferView);
+			bool alive = voice->mix();
 			if (!alive) {
 				it = voices.erase(it);
 			}
@@ -41,6 +42,18 @@ namespace siren {
 				it++;
 			}
 		}
+
+		float sfxVolume = context->m_sfxBus.m_volume;
+		for (size_t i = 0; i < context->m_sfxBus.m_buffer.size(); i++) {
+			outBuffer[i] += context->m_sfxBus.m_buffer[i] * sfxVolume;
+		}
+
+		float musicVolume = context->m_musicBus.m_volume;
+		for (size_t i = 0; i < context->m_musicBus.m_buffer.size(); i++) {
+			outBuffer[i] += context->m_musicBus.m_buffer[i] * musicVolume;
+		}
+
+		// TODO: Add master volume
 	}
 
 	AudioContext::AudioContext() {
@@ -131,7 +144,9 @@ namespace siren {
 			voice->attachDecoder(std::move(result.value()));
 		}
 		voice->setTag(sound.getTag());
+		voice->setBus(&m_musicBus); // TODO: make this dynamic
 		voice->play();
+
 		size_t seconds = totalFrames / sampleRate;
 		SIREN_LOG_INFO("Playing sound [" << voice->getTag() << ", " << seconds / 60 << "m " << seconds % 60 << "s]");
 

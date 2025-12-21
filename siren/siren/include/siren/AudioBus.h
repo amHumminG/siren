@@ -12,7 +12,7 @@ namespace siren {
 		static constexpr size_t MAX_BUFFER_SIZE = 8192 * 2; // Stereo
 		std::vector<float> m_buffer;
 
-		std::atomic<float> m_volume;
+		std::atomic<float> m_volume = 1.0f;
 
 		AudioBus(const std::string& name);
 

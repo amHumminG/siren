@@ -132,6 +132,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="external\miniaudio\miniaudio.h" />
+    <ClInclude Include="include\siren\AudioBus.h" />
     <ClInclude Include="include\siren\AudioContext.h" />
     <ClInclude Include="include\siren\codecs\WavDecoder.h" />
     <ClInclude Include="include\siren\DataSource.h" />
@@ -147,6 +148,7 @@
     <ClInclude Include="src\internal\log.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\AudioBus.cpp" />
     <ClCompile Include="src\AudioContext.cpp" />
     <ClCompile Include="src\Sound.cpp" />
     <ClCompile Include="src\Voice.cpp" />

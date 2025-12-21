@@ -11,8 +11,12 @@ enum class VoiceState {
 
 namespace siren {
 
+	class AudioBus;
+
 	class Voice {
 	private:
+		AudioBus* m_bus = nullptr;
+
 		std::unique_ptr<Decoder> m_decoder;
 		
 		std::atomic<VoiceState> m_state{ VoiceState::Inactive };
@@ -33,13 +37,12 @@ namespace siren {
 		/// @param decoder The decoder of an audio source
 		void attachDecoder(std::unique_ptr<Decoder> decoder);
 
-		/// @brief Mixes the destination buffer with decoded audio data if
-		/// state is Playing, otherwise fills buffer with silence
+		/// @brief Mixes the buffer of its audio bus with decoded audio data if
+		/// state is Playing
 		/// 
 		/// Supports [Mono, Stereo]
-		/// @param dst Destination buffer
 		/// @return True if voice is still alive, otherwise false
-		bool mix(std::span<float> dst);
+		bool mix();
 
 		/// @brief Sets voice state to Playing
 		///
@@ -51,6 +54,9 @@ namespace siren {
 
 		/// @brief Sets voice state to Inactive
 		void stop();
+
+		/// @param bus The bus that the voice will write to
+		void setBus(AudioBus* bus);
 
 		/// @param value New volume (clamped between 0.0f and 1.0f)
 		void setVolume(float value);

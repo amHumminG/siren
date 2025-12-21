@@ -57,6 +57,9 @@
     <ClInclude Include="include\siren\AudioContext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\siren\AudioBus.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Utils.cpp">
@@ -81,6 +84,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\AudioContext.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AudioBus.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
