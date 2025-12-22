@@ -18,8 +18,5 @@ namespace siren {
 		/// @param frameCount The amount of frames requested by the audio callback
 		/// @param channelCount The amount of channels of the audio output
 		void prepare(size_t frameCount, size_t channelCount);
-
-		/// @param value New volume (clamped between 0.0f and 1.0f)
-		void setVolume(float value);
 	};
 }
