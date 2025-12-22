@@ -57,7 +57,7 @@ namespace siren {
 			if (bus.get() != masterBus) {
 				float busVolume = bus->m_volume;
 				for (size_t i = 0; i < bus->m_buffer.size(); i++) {
-					outBuffer[i] += masterBus->m_buffer[i] * busVolume;
+					masterBus->m_buffer[i] += bus->m_buffer[i] * busVolume;
 				}
 			}
 		}
