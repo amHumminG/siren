@@ -56,6 +56,12 @@ namespace siren {
 		/// @param volume New volume (clamped between 0.0f and 1.0f)
 		bool setBusVolume(const std::string& busName, float volume);
 
+		/// @brief Returns the volume of a specified bus
+		/// 
+		/// If no bus with the specified name exists, return will be 0.0f
+		/// @param busName The name of the bus
+		float getBusVolume(const std::string& busName);
+
 		/// @brief Plays a sound
 		/// @param sound The sound to be played
 		/// @return A shared pointer to the voice that has been created to play the sound

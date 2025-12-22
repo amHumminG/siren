@@ -5,6 +5,8 @@
 #define MINIAUDIO_IMPLEMENTATION
 #include "../external/miniaudio/miniaudio.h"
 
+#include <algorithm>
+
 
 namespace siren {
 
@@ -160,8 +162,18 @@ namespace siren {
 			return false;
 		}
 
-		bus->setVolume(volume);
+		bus->m_volume.store(std::clamp(volume, 0.0f, 1.0f));
 		return true;
+	}
+
+	float AudioContext::getBusVolume(const std::string& busName) {
+		AudioBus* bus = getBus(busName);
+		if (!bus) {
+			SIREN_LOG_WARNING("AudioContext::getBusVolume() No bus with name: " << busName << " exists");
+			return 0.0f;
+		}
+
+		return bus->m_volume;
 	}
 
 	std::shared_ptr<Voice> AudioContext::play(const Sound& sound, const std::string& busName) {
