@@ -15,7 +15,7 @@ namespace siren {
 		bool m_initialized = false;
 		std::unique_ptr<ma_device> m_device;
 
-		std::unordered_map<std::string, std::unique_ptr<AudioBus>> m_busRegistry;
+		std::unordered_map<std::string, std::unique_ptr<AudioBus>> m_busRegistry; // Contains all audio buses
 		std::shared_mutex m_busMutex;
 
 		struct PendingVoiceNode {
@@ -48,8 +48,12 @@ namespace siren {
 		/// @return True if deinitialization was successful, otherwise false
 		bool deinit();
 
+		/// @brief Creates a bus with the specified name
+		/// @param busName The name of the bus
+		/// @return True if the bus was created, otherwise false
 		bool createBus(const std::string& busName);
 
+		/// @param volume New volume (clamped between 0.0f and 1.0f)
 		bool setBusVolume(const std::string& busName, float volume);
 
 		/// @brief Plays a sound
