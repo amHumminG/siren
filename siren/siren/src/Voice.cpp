@@ -161,10 +161,6 @@ namespace siren {
 		m_seekFrame.store(frame);
 	}
 
-	float Voice::getVolume() {
-		return m_volume.load();
-	}
-
 	float Voice::getPan() const {
 		return m_pan.load();
 	}
@@ -176,5 +172,4 @@ namespace siren {
 	bool Voice::isPlaying() const {
 		return m_state.load() == VoiceState::Playing;
 	}
-
 }

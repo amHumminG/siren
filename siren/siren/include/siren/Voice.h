@@ -74,9 +74,6 @@ namespace siren {
 		/// @param timePoint Represents the position (in seconds) to jump to
 		void seek(float timePoint);
 
-		/// @return Current volume
-		[[nodiscard]] float getVolume();
-
 		/// @return Current pan
 		[[nodiscard]] float getPan() const;
 
