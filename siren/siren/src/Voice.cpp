@@ -5,6 +5,7 @@
 #include <string>
 #include <array>
 #include <cmath>
+#include "siren/SirenMath.h"
 
 #ifndef M_PI_2
 #define M_PI_2 1.57079632679489661923
@@ -19,7 +20,7 @@ namespace siren {
 		m_decoder = std::move(decoder);
 	}
 
-	bool Voice::mix() {
+	bool Voice::mix(const ListenerData& listener) {
 		VoiceState state = m_state.load();
 		if (state == VoiceState::Inactive || !m_decoder) {
 			return false; // Dead
@@ -55,6 +56,26 @@ namespace siren {
 
 		float gainL = std::cos(angle);
 		float gainR = std::sin(angle);
+
+		if (m_mode == VoiceMode::Spatial) {
+			// Distance based volume
+			float distance = (m_position - listener.position).length();
+			distance = std::clamp(distance, m_minDistance, m_maxDistance);
+			float fraction = (distance - m_minDistance) / (m_maxDistance - m_minDistance);
+			float volume = 1.0f - fraction;
+
+			// Listener based panning
+			Vector3 listenerToEmitter = normalize(m_position - listener.position);
+			Vector3 right = normalize(listener.right);
+
+			float pan = right * listenerToEmitter;
+			panNormalized = (pan + 1.0f) * 0.5f;
+			angle = panNormalized * static_cast<float>(M_PI_2);
+
+			// Apply pan and volume
+			gainL =  cos(angle) * volume;
+			gainR = sin(angle) * volume;
+		}
 
 		while (framesRead < framesRequested) {
 
@@ -171,5 +192,34 @@ namespace siren {
 
 	bool Voice::isPlaying() const {
 		return m_state.load() == VoiceState::Playing;
+	}
+
+	void Voice::setPosition(const Vector3& pos) {
+		m_position = pos;
+		m_mode = VoiceMode::Spatial;
+	}
+
+	void Voice::setGlobal() {
+		m_mode = VoiceMode::Global;
+	}
+
+	void Voice::setDistance(float minDistance, float maxDistance) {
+		if (minDistance < 0.1f) {
+			minDistance = 0.1f;
+		}
+		if (maxDistance < 0.1f) {
+			maxDistance = minDistance + 0.1f;
+		}
+
+		m_minDistance = minDistance;
+		m_maxDistance = maxDistance;
+	}
+
+	float Voice::getMinDistance() {
+		return m_minDistance;
+	}
+
+	float Voice::getMaxDistance() {
+		return m_maxDistance;
 	}
 }

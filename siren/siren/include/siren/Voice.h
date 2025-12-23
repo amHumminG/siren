@@ -1,5 +1,6 @@
 #pragma once
 #include "siren/Decoder.h"
+#include "siren/SirenMath.h"
 #include <atomic>
 #include <mutex>
 
@@ -7,6 +8,11 @@ enum class VoiceState {
 	Inactive,
 	Playing,
 	Paused
+};
+
+enum class VoiceMode {
+	Global, // Manual pan
+	Spatial // Automatic pan and volume based on position and listener
 };
 
 namespace siren {
@@ -20,6 +26,7 @@ namespace siren {
 		std::unique_ptr<Decoder> m_decoder;
 		
 		std::atomic<VoiceState> m_state{ VoiceState::Inactive };
+		VoiceMode m_mode = VoiceMode::Global;
 		std::atomic<float> m_volume{ 1.0f };	// clamped between 0.0f and 1.0f
 		std::atomic<float> m_pan{ 0.0f };	// clamped between -1.0f and 1.0f
 		std::atomic<float> m_isLooping{ false };
@@ -28,6 +35,11 @@ namespace siren {
 		uint32_t m_sampleRate = 0; // Stored to be used for frame to seconds conversion
 
 		std::string m_tag; // Defaults to the tag that the sound held when this voice was constructed
+
+		// Emitter data
+		Vector3 m_position; // The position of the voice
+		float m_minDistance = 1.0f; // Minimum distance the voice can be heard from (for volume scaling)
+		float m_maxDistance = 50.0f; // Maximum distance the voice can be heard from (for volume scaling)
 
 	public:
 		Voice() = default;
@@ -42,7 +54,7 @@ namespace siren {
 		/// 
 		/// Supports [Mono, Stereo]
 		/// @return True if voice is still alive, otherwise false
-		bool mix();
+		bool mix(const ListenerData& listener);
 
 		/// @brief Sets voice state to Playing
 		///
@@ -82,5 +94,22 @@ namespace siren {
 
 		/// @return True if voice state = Playing, otherwise false
 		[[nodiscard]] bool isPlaying() const;
+
+		/// @brief Sets the voice position and sets mode to spatial if
+		/// voice is in any other mode
+		void setPosition(const Vector3& pos);
+
+		/// @brief Sets voice mode to Global
+		void setGlobal();
+
+		/// @param minDistance The minimum distance the voice can be heard from
+		/// @param maxDistance The maximum distance the voice can be heard from
+		void setDistance(float minDistance, float maxDistance);
+
+		/// @return The minimum distance the voice can be heard from
+		float getMinDistance();
+
+		/// @return The maximum distance the voice can be heard from
+		float getMaxDistance();
 	};
 }
