@@ -2,9 +2,15 @@
 #include "siren/AudioBus.h"
 #include "siren/Voice.h"
 #include "siren/Sound.h"
+#include "siren/SirenMath.h"
 #include <vector>
 #include <unordered_map>
 #include <shared_mutex>
+
+enum class CoordinateSystem {
+	RightHanded,
+	LeftHanded
+};
 
 struct ma_device;
 
@@ -13,7 +19,7 @@ namespace siren {
 	class AudioContext {
 	private:
 		bool m_initialized = false;
-		std::unique_ptr<ma_device> m_device;
+		std::unique_ptr<ma_device> m_device; // The device used for audio playback
 
 		std::unordered_map<std::string, std::unique_ptr<AudioBus>> m_busRegistry; // Contains all audio buses
 		std::shared_mutex m_busMutex;
@@ -26,6 +32,10 @@ namespace siren {
 		std::atomic<PendingVoiceNode*> m_inboxHead{ nullptr }; // Linked list of pending voices to be played
 
 		std::vector<std::shared_ptr<Voice>> m_voiceRegistry; // Only accessed by data_callback
+		
+		CoordinateSystem m_coordinateSystem = CoordinateSystem::LeftHanded;
+		ListenerData m_listener; // Represents the listener (most likely the player)
+		std::mutex m_listenerMutex;
 
 		/// @brief Writes audio data to the device
 		/// @param pDevice The device
@@ -50,6 +60,15 @@ namespace siren {
 		/// @brief Deinitializes the AudioContext
 		/// @return True if deinitialization was successful, otherwise false
 		bool deinit();
+
+		/// @brief Sets the orientation of the coordinatesystem
+		void setCoordinateSystem(CoordinateSystem system);
+
+		/// @brief Sets the listener data
+		/// @param pos The position of the listener
+		/// @param fwd The direction the listener is facing
+		/// @param up The up vector from the listener (Should be orthogonal to fwd)
+		void setListener(const Vector3& pos, const Vector3& fwd, const Vector3& up);
 
 		/// @brief Creates a bus with the specified name
 		/// @param busName The name of the bus

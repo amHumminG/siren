@@ -140,6 +140,25 @@ namespace siren {
 		return true;
 	}
 
+	void AudioContext::setCoordinateSystem(CoordinateSystem system) {
+		m_coordinateSystem = system;
+	}
+
+	void AudioContext::setListener(const Vector3& pos, const Vector3& fwd, const Vector3& up) {
+		std::lock_guard<std::mutex> lock(m_listenerMutex);
+
+		m_listener.position = pos;
+		m_listener.forward = normalize(fwd);
+		m_listener.up = normalize(up);
+
+		if (m_coordinateSystem == CoordinateSystem::RightHanded) {
+			m_listener.right = crossMultiply(m_listener.forward, m_listener.up);
+		}
+		else {
+			m_listener.right = crossMultiply(m_listener.up, m_listener.forward);
+		}
+	}
+
 	bool AudioContext::createBus(const std::string& busName) {
 		std::unique_lock<std::shared_mutex> lock(m_busMutex);
 
