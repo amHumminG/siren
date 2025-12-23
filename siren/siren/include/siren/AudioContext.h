@@ -34,6 +34,9 @@ namespace siren {
 		/// @param frameCount The number of frames requested by the audio device
 		static void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, uint32_t frameCount);
 
+		/// @param busName The name of the bus
+		/// @return A pointer to the audio bus or nullptr if no bus 
+		/// with the specified name exist
 		AudioBus* getBus(const std::string& busName);
 
 	public:
@@ -64,6 +67,8 @@ namespace siren {
 
 		/// @brief Plays a sound
 		/// @param sound The sound to be played
+		/// @param busName The bus that the sound should be played to. If none is provided,
+		/// it will default to Master
 		/// @return A shared pointer to the voice that has been created to play the sound
 		std::shared_ptr<Voice> play(const Sound& sound, const std::string& busName="Master");
 	};
