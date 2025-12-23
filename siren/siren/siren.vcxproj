@@ -142,6 +142,7 @@
     <ClInclude Include="include\siren\io\MemoryDataSource.h" />
     <ClInclude Include="include\siren\Result.h" />
     <ClInclude Include="include\siren\siren.h" />
+    <ClInclude Include="include\siren\SirenMath.h" />
     <ClInclude Include="include\siren\Sound.h" />
     <ClInclude Include="include\siren\Utils.h" />
     <ClInclude Include="include\siren\Voice.h" />
