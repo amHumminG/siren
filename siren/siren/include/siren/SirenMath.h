@@ -42,6 +42,18 @@ namespace siren {
 		}
 	};
 
+	inline Vector3 normalize(const Vector3& v) {
+		float length = v.length();
+		Vector3 vOut;
+		if (length > 0.0000001f) {
+			vOut.x = v.x / length;
+			vOut.y = v.y / length;
+			vOut.z = v.z / length;
+			return vOut;
+		}
+		return v;
+	}
+
 	inline Vector3 crossMultiply(const Vector3& v1, const Vector3& v2) {
 		Vector3 result(
 			(v1.y * v2.z) - (v1.z * v2.y),
@@ -50,4 +62,11 @@ namespace siren {
 		);
 		return result;
 	}
+
+	struct ListenerData {
+		Vector3 position;
+		Vector3 forward;
+		Vector3 up;
+		Vector3 right;
+	};
 }
