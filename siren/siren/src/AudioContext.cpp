@@ -40,7 +40,7 @@ namespace siren {
 		for (auto it = voices.begin(); it != voices.end(); ) {
 			auto& voice = *it;
 
-			bool alive = voice->mix();
+			bool alive = voice->mix(context->m_listener);
 			if (!alive) {
 				it = voices.erase(it);
 			}
