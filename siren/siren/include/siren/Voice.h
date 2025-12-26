@@ -102,14 +102,16 @@ namespace siren {
 		/// @brief Sets voice mode to Global
 		void setGlobal();
 
-		/// @param minDistance The minimum distance the voice can be heard from
-		/// @param maxDistance The maximum distance the voice can be heard from
+		/// @param minDistance The radius of full volume around the voice position
+		/// @param maxDistance The maximum distance from the voice position that the 
+		/// voice can be heard from
 		void setDistance(float minDistance, float maxDistance);
 
-		/// @return The minimum distance the voice can be heard from
+		/// @return The radius of full volume around the voice position
 		float getMinDistance();
 
-		/// @return The maximum distance the voice can be heard from
+		/// @return The maximum distance from the voice position that the 
+		/// voice can be heard from
 		float getMaxDistance();
 	};
 }
