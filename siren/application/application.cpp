@@ -24,6 +24,11 @@ int main() {
 	// Context creation
 	AudioContext context;
 	context.init();
+	context.setListener(
+		Vector3(0.0f, 0.0f, 0.0f),
+		Vector3(0.0f, 0.0f, 1.0f),
+		Vector3(0.0f, 1.0f, 0.0f)
+	);
 
 	// Bus creation
 	context.createBus("Music");
@@ -38,9 +43,10 @@ int main() {
 
 	// Sound playback
 	std::shared_ptr<Voice> voice1 = context.play(whiteFerrari, "Music");
-	//std::this_thread::sleep_for(std::chrono::milliseconds(100));
-	std::shared_ptr<Voice> voice2 = context.play(bloodRunWarm, "Master");
-	voice2->setLooping(true);
+	//std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Delay
+	//std::shared_ptr<Voice> voice2 = context.play(bloodRunWarm, "Master");
+	voice1->setLooping(true);
+	voice1->setDistance(0.1f, 50.0f);
 
 	// Ping pong testing
 	float angle = 0.0f;
@@ -61,35 +67,34 @@ int main() {
 
 		pipeTimer += deltaTime;
 		if (pipeTimer >= 5.0f) {
-			std::shared_ptr<Voice> voice = context.play(metalPipe, "SFX");
-			voice->setPan(dist(gen));
+			//std::shared_ptr<Voice> voice = context.play(metalPipe, "SFX");
+			//voice->setPan(dist(gen));
 
 			if (voice1) {
 				if (voice1->isPlaying()) {
-					voice1->pause();
+
 				}
 				else {
-					voice1->play();
+
 				}
 			}
 
 			pipeTimer -= 5.0f;
 		}
 
-		// Ping Pong logic
-		angle += frequency * 6.28318f * deltaTime;
-		float volSine = std::sin(angle);
-		
-		// Volume Ping Pong
-		float volume = (volSine + 1.0f) * 0.5f;
-		context.setBusVolume("Music", volume);
+			// Angle rotating between 0 and 360 degrees
+			angle += frequency * 6.28318f * deltaTime;
 
-		if (voice1->isPlaying()) {
-			// Pan Ping Pong
-			float pan = (volSine + 1.0f) - 1.0f;
-			voice1->setPan(pan);
+			if (voice1->isPlaying()) {
+				// Rotating voice around origo with radius r
+				float r = 30.0f;
+				float x = cos(angle) * r;
+				float y = 0.0f;
+				float z = sin(angle) * r;
+				std::cout << "X: " << round(x) << "  |  Z: " << round(z) << std::endl;
+				voice1->setPosition(Vector3(x, y, z));
+			}
 		}
-	}
 
 	context.deinit();
 
