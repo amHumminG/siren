@@ -26,12 +26,16 @@ int main() {
 	siren::AudioContext context;
 	context.init();
 
+	bool mouseLock = false;
+	Vector3 start = { 0.0f, 5.0f, 0.0f };
 	Camera camera = { 0 };
-	camera.position = { 0.0f, 0.0f, 0.0f };
-	camera.target = { 0.0f, 0.0f, 0.0f };
+	camera.position = start;
+	camera.target = { start.x, start.y, 1.0f };
 	camera.up = { 0.0f, 1.0f, 0.0f };
 	camera.fovy = 45.0f;
 	camera.projection = CAMERA_PERSPECTIVE;
+
+	float moveSpeed = 2.0f;
 
 	// Scenarios
 	std::vector<std::unique_ptr<Scenario>> scenarios;
@@ -43,7 +47,14 @@ int main() {
 	while (!WindowShouldClose()) {
 		float deltaTime = GetFrameTime();
 
-		if (!ImGui::GetIO().WantCaptureMouse) {
+		// Toggle mouse lock
+		if (IsKeyPressed(KEY_C)) {
+			mouseLock = !mouseLock;
+			if (mouseLock) DisableCursor();
+			if (!mouseLock) EnableCursor();
+		}
+
+		if (mouseLock && !ImGui::GetIO().WantCaptureMouse) {
 			UpdateCamera(&camera, CAMERA_FIRST_PERSON);
 		}
 
@@ -54,6 +65,28 @@ int main() {
 			{ camera.up.x, camera.up.y, camera.up.z }
 		);
 
+		if (mouseLock) {
+
+			// Reset to start pos
+			if (IsKeyPressed(KEY_R)) {
+				camera.position = start;
+				camera.target = { start.x, start.y, 1.0f };
+			}
+
+			Vector3 movement = { 0.0f, 0.0f, 0.0f };
+
+			if (IsKeyDown(KEY_SPACE)) {
+				movement = Vector3Add(movement, { 0.0f, 1.0f, 0.0f });
+			}
+			if (IsKeyDown(KEY_LEFT_CONTROL)) {
+				movement = Vector3Add(movement, { 0.0f, -1.0f, 0.0f });
+			}
+
+			Vector3 finalMovement = Vector3Scale(movement, moveSpeed * deltaTime);
+			camera.position = Vector3Add(camera.position, finalMovement);
+			camera.target = Vector3Add(camera.target, finalMovement);
+		}
+
 		// Scenario update
 		if (selectedScenario) {
 			selectedScenario->update(deltaTime, context);
@@ -61,7 +94,7 @@ int main() {
 
 		// DRAW - Sceario
 		BeginDrawing();
-		ClearBackground(Color(28, 28, 28, 1));
+		ClearBackground(Color(28, 28, 28, 255));
 
 		BeginMode3D(camera);
 		DrawGrid(100, 1.0f);
