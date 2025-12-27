@@ -139,13 +139,10 @@
     <ClCompile Include="..\packages\imgui\imgui_tables.cpp" />
     <ClCompile Include="..\packages\imgui\imgui_widgets.cpp" />
     <ClCompile Include="..\packages\rlimgui\rlImGui.cpp" />
-    <ClCompile Include="application.cpp" />
+    <ClCompile Include="src\application.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="resource.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="application.rc" />
+    <ClInclude Include="src\Scenario.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\siren\siren.vcxproj">

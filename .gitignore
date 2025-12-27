@@ -446,3 +446,6 @@ FodyWeavers.xsd
 # Visual Studio IntelliSense (Safety net)
 *.db
 *.opendb
+
+# ImGui
+*.ini
