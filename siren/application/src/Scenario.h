@@ -1,7 +1,10 @@
 #pragma once
 #include "raylib.h"
-#include "siren/AudioContext.h"
 #include <string>
+
+namespace siren { 
+	class AudioContext; 
+}
 
 class Scenario {
 public:

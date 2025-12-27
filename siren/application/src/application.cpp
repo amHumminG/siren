@@ -61,7 +61,7 @@ int main() {
 
 		// DRAW - Sceario
 		BeginDrawing();
-		ClearBackground(DARKGRAY);
+		ClearBackground(Color(28, 28, 28, 1));
 
 		BeginMode3D(camera);
 		DrawGrid(100, 1.0f);
@@ -72,6 +72,12 @@ int main() {
 
 		// DRAW - UI
 		rlImGuiBegin();
+		ImGuiStyle& style = ImGui::GetStyle();
+		style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
+
+		style.Colors[ImGuiCol_ResizeGrip] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
+		style.Colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
+		style.Colors[ImGuiCol_ResizeGripActive] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
 
 		ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
 		ImGui::SetNextWindowSize(ImVec2(200, 300), ImGuiCond_FirstUseEver);
