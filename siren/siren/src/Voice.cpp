@@ -207,7 +207,7 @@ namespace siren {
 		if (minDistance < 0.1f) {
 			minDistance = 0.1f;
 		}
-		if (maxDistance < 0.1f) {
+		if (maxDistance < 0.1f || minDistance > maxDistance) {
 			maxDistance = minDistance + 0.1f;
 		}
 
