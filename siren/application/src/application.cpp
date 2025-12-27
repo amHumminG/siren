@@ -72,6 +72,9 @@ int main() {
 	context.setCoordinateSystem(CoordinateSystem::RightHanded);
 	context.createBus("Music");
 	context.createBus("SFX");
+	float masterVol = context.getBusVolume("Master");
+	float musicVol = context.getBusVolume("Music");
+	float sfxVol = context.getBusVolume("SFX");
 
 	bool mouseLock = false;
 	Vector3 start = { 0.0f, 5.0f, 0.0f };
@@ -159,6 +162,45 @@ int main() {
 		ImGui::SetNextWindowSize(ImVec2(200, 300), ImGuiCond_FirstUseEver);
 
 		ImGui::Begin("Test Suite");
+
+		ImGui::SeparatorText("Mixer");
+
+		// Define size for faders
+		ImVec2 sliderSize(30, 100);
+
+		// Master
+		ImGui::BeginGroup();
+		ImGui::Text("Master");
+		if (ImGui::VSliderFloat("##Master", sliderSize, &masterVol, 0.0f, 1.0f, "")) {
+			context.setBusVolume("Master", masterVol);
+		}
+		ImGui::EndGroup();
+
+		ImGui::SameLine(); // Put next slider to the right
+
+		// Music
+		ImGui::BeginGroup();
+		ImGui::Text("Music");
+		if (ImGui::VSliderFloat("##Music", sliderSize, &musicVol, 0.0f, 1.0f, "")) {
+			context.setBusVolume("Music", musicVol);
+		}
+		ImGui::EndGroup();
+
+		ImGui::SameLine();
+
+		// SFX
+		ImGui::BeginGroup();
+		ImGui::Text("SFX");
+		if (ImGui::VSliderFloat("##SFX", sliderSize, &sfxVol, 0.0f, 1.0f, "")) {
+			context.setBusVolume("SFX", sfxVol);
+		}
+		ImGui::EndGroup();
+
+		// Display numeric values below
+		ImGui::Text("%.2f  %.2f  %.2f", masterVol, musicVol, sfxVol);
+
+		ImGui::Separator();
+
 		ImGui::Text("Select Scenario:");
 		ImGui::Separator();
 
