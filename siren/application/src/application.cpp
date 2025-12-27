@@ -9,6 +9,7 @@
 
 // Test Scenarios
 #include "Scenario.h"
+#include "OrbitScenario.h"
 
 // Misc
 #include <iostream>
@@ -18,6 +19,49 @@
 #define WINDOW_WIDTH 1280
 #define WINDOW_HEIGHT 720
 
+void SetupImGuiStyle(float alpha) {
+	ImGuiStyle& style = ImGui::GetStyle();
+	style.Alpha = alpha;
+
+	// Colors
+	ImVec4 inactiveColor = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
+	ImVec4 hoveredColor = ImVec4(0.2f, 0.2f, 0.2f, 1.0f);
+	ImVec4 activeColor = ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
+	ImVec4 whiteColor = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+
+	style.Colors[ImGuiCol_TitleBg] = inactiveColor;
+	style.Colors[ImGuiCol_TitleBgActive] = activeColor;
+
+	style.Colors[ImGuiCol_Button] = inactiveColor;
+	style.Colors[ImGuiCol_ButtonHovered] = hoveredColor;
+	style.Colors[ImGuiCol_ButtonActive] = activeColor;
+
+	style.Colors[ImGuiCol_Header] = inactiveColor;
+	style.Colors[ImGuiCol_HeaderHovered] = hoveredColor;
+	style.Colors[ImGuiCol_HeaderActive] = activeColor;
+
+	style.Colors[ImGuiCol_FrameBg] = inactiveColor;
+	style.Colors[ImGuiCol_FrameBgHovered] = hoveredColor;
+	style.Colors[ImGuiCol_FrameBgActive] = activeColor;
+	style.Colors[ImGuiCol_CheckMark] = whiteColor; // White checkmark
+
+	style.Colors[ImGuiCol_SliderGrab] = whiteColor;
+	style.Colors[ImGuiCol_SliderGrabActive] = whiteColor;
+
+	style.Colors[ImGuiCol_ResizeGrip] = inactiveColor;
+	style.Colors[ImGuiCol_ResizeGripHovered] = hoveredColor;
+	style.Colors[ImGuiCol_ResizeGripActive] = activeColor;
+
+	style.Colors[ImGuiCol_SeparatorHovered] = hoveredColor;
+	style.Colors[ImGuiCol_SeparatorActive] = activeColor;
+
+	// Optional: Rounding for a smoother look
+	style.WindowRounding = 4.0f;
+	style.FrameRounding = 4.0f;
+	style.GrabRounding = 4.0f;
+
+}
+
 int main() {
 	InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "SANDBOX");
 	SetTargetFPS(60);
@@ -25,6 +69,9 @@ int main() {
 
 	siren::AudioContext context;
 	context.init();
+	context.setCoordinateSystem(CoordinateSystem::RightHanded);
+	context.createBus("Music");
+	context.createBus("SFX");
 
 	bool mouseLock = false;
 	Vector3 start = { 0.0f, 5.0f, 0.0f };
@@ -40,7 +87,8 @@ int main() {
 	// Scenarios
 	std::vector<std::unique_ptr<Scenario>> scenarios;
 	
-	// TODO: Add scenarios
+	// Add scenarios
+	scenarios.push_back(std::make_unique<OrbitScenario>());
 
 	Scenario* selectedScenario = nullptr;
 
@@ -105,12 +153,7 @@ int main() {
 
 		// DRAW - UI
 		rlImGuiBegin();
-		ImGuiStyle& style = ImGui::GetStyle();
-		style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
-
-		style.Colors[ImGuiCol_ResizeGrip] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
-		style.Colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
-		style.Colors[ImGuiCol_ResizeGripActive] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
+		SetupImGuiStyle(0.7f);
 
 		ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
 		ImGui::SetNextWindowSize(ImVec2(200, 300), ImGuiCond_FirstUseEver);

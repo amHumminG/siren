@@ -41,5 +41,8 @@
     <ClInclude Include="src\Scenario.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\OrbitScenario.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

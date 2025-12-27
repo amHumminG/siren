@@ -142,6 +142,7 @@
     <ClCompile Include="src\application.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\OrbitScenario.h" />
     <ClInclude Include="src\Scenario.h" />
   </ItemGroup>
   <ItemGroup>
