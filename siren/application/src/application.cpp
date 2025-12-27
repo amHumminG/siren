@@ -63,7 +63,10 @@ void SetupImGuiStyle(float alpha) {
 }
 
 int main() {
-	InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "SANDBOX");
+	InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Siren Testbed");
+	Image icon = LoadImage("assets/images/icon.png");
+	SetWindowIcon(icon);
+
 	SetTargetFPS(60);
 	rlImGuiSetup(true);
 
@@ -161,7 +164,7 @@ int main() {
 		ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
 		ImGui::SetNextWindowSize(ImVec2(200, 300), ImGuiCond_FirstUseEver);
 
-		ImGui::Begin("Test Suite");
+		ImGui::Begin("Menu");
 
 		ImGui::SeparatorText("Mixer");
 
@@ -201,7 +204,7 @@ int main() {
 
 		ImGui::Separator();
 
-		ImGui::Text("Select Scenario:");
+		ImGui::Text("Scenarios:");
 		ImGui::Separator();
 
 		for (auto& scenario : scenarios) {
@@ -220,7 +223,7 @@ int main() {
 			ImGui::SetNextWindowPos(ImVec2(WINDOW_WIDTH - 260, 10), ImGuiCond_FirstUseEver);
 			ImGui::SetNextWindowSize(ImVec2(250, 200), ImGuiCond_FirstUseEver);
 
-			ImGui::Begin("Controls");
+			ImGui::Begin("Scenario Controls");
 			selectedScenario->drawUI();
 			ImGui::End();
 		}
