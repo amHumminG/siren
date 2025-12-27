@@ -161,8 +161,8 @@ int main() {
 		rlImGuiBegin();
 		SetupImGuiStyle(0.7f);
 
-		ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
-		ImGui::SetNextWindowSize(ImVec2(200, 300), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Once);
+		ImGui::SetNextWindowSize(ImVec2(200, 400), ImGuiCond_Once);
 
 		ImGui::Begin("Menu");
 
@@ -220,8 +220,8 @@ int main() {
 		ImGui::End();
 
 		if (selectedScenario) {
-			ImGui::SetNextWindowPos(ImVec2(WINDOW_WIDTH - 260, 10), ImGuiCond_FirstUseEver);
-			ImGui::SetNextWindowSize(ImVec2(250, 200), ImGuiCond_FirstUseEver);
+			ImGui::SetNextWindowPos(ImVec2(WINDOW_WIDTH - 260, 10), ImGuiCond_Once);
+			ImGui::SetNextWindowSize(ImVec2(250, 500), ImGuiCond_Once);
 
 			ImGui::Begin("Scenario Controls");
 			selectedScenario->drawUI();
