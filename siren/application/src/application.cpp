@@ -10,6 +10,7 @@
 // Test Scenarios
 #include "Scenario.h"
 #include "OrbitScenario.h"
+#include "SoundscapeScenario.h"
 
 // Misc
 #include <iostream>
@@ -95,6 +96,7 @@ int main() {
 	
 	// Add scenarios
 	scenarios.push_back(std::make_unique<OrbitScenario>());
+	scenarios.push_back(std::make_unique<SoundscapeScenario>());
 
 	Scenario* selectedScenario = nullptr;
 
