@@ -96,8 +96,8 @@ public:
 		ImGui::Separator();
 		ImGui::Text("Attenuation");
 		ImGui::TextColored(ImVec4(0, 1, 0, 1), "Min Distance (Green)");
-		ImGui::SliderFloat("MinDist", &m_minDist, 0.1f, 20.0f);
+		ImGui::SliderFloat("##MinDist", &m_minDist, 0.1f, 20.0f);
 		ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "Max Distance (Gray)");
-		ImGui::SliderFloat("MaxDist", &m_maxDist, m_minDist, 100.0f);
+		ImGui::SliderFloat("##MaxDist", &m_maxDist, m_minDist, 100.0f);
 	}
 };
