@@ -438,8 +438,6 @@ FodyWeavers.xsd
 # C++ Libraries
 *.lib
 *.dll
-!dependencies/**/*.lib
-!dependencies/**/*.dll
 *.so
 *.a
 *.dylib
@@ -451,3 +449,10 @@ FodyWeavers.xsd
 
 # ImGui
 *.ini
+
+# Dependencies whitelist
+!siren/dependencies/
+!siren/dependencies/**[Ll]ib/
+!siren/dependencies/**/*.lib
+!siren/dependencies/**/*.dll
+!siren/dependencies/**/*.pdb
