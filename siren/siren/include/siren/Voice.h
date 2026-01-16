@@ -41,6 +41,7 @@ namespace siren {
 		// Emitter data
 		Vector3 m_position; // The position of the voice
 		Vector3 m_previousPosition; // The position of the voice from the previous frame
+		bool m_firstUpdate = true; // True if no update has been called on this voice yet
 
 		float m_minDistance = 1.0f; // Minimum distance the voice can be heard from (for volume scaling)
 		float m_maxDistance = 50.0f; // Maximum distance the voice can be heard from (for volume scaling)
@@ -113,6 +114,12 @@ namespace siren {
 
 		/// @brief Sets the voice velocity for a specific frame (optional manual override) 
 		void setVelocity(const Vector3& vel);
+
+		/// @return The current velocity of the voice
+		///
+		/// Note that if the velocity has not been manually provided this frame,
+		/// it is approximated by the engine
+		Vector3 getVelocity() const;
 
 		/// @brief Sets voice mode to Global
 		void setGlobal();

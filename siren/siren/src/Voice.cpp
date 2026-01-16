@@ -138,11 +138,17 @@ namespace siren {
 		if (m_velocitySetThisFrame) {
 			m_velocitySetThisFrame = false;
 		}
+		else if (m_firstUpdate) {
+			m_velocity = { 0.0f, 0.0f, 0.0f };
+			m_firstUpdate = false;
+		}
 		else {
 			// Approximate voice velocity
 			Vector3 distance = m_position - m_previousPosition;
 			m_velocity = distance / deltaTime;
 		}
+
+		m_previousPosition = m_position;
 
 		// TODO: Use velocity for doppler effect
 	}
@@ -219,6 +225,10 @@ namespace siren {
 	void Voice::setVelocity(const Vector3& vel) {
 		m_velocity = vel;
 		m_velocitySetThisFrame = true;
+	}
+
+	Vector3 Voice::getVelocity() const {
+		return m_velocity;
 	}
 
 	void Voice::setGlobal() {
