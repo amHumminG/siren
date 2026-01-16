@@ -106,8 +106,8 @@ namespace siren {
 	}
 
 	void Voice::update(float deltaTime, const ListenerData& listener) {
-		float volume;
-		float pan;
+		float volume = m_volume;
+		float pan = m_pan;
 		if (m_mode == VoiceMode::Spatial) {
 			// Distance based volume
 			float distance = (m_position - listener.position).length();
@@ -120,10 +120,6 @@ namespace siren {
 			Vector3 right = listener.right;
 
 			pan = right * listenerToEmitter;
-		}
-		else {
-			volume = m_volume.load();
-			pan = m_pan.load();
 		}
 
 		float panNormalized = (pan + 1.0f) * 0.5f;
@@ -182,15 +178,15 @@ namespace siren {
 	}
 
 	void Voice::setPan(float value) {
-		m_pan.store(std::clamp(value, -1.0f, 1.0f));
+		m_pan = std::clamp(value, -1.0f, 1.0f);
 	}
 
 	void Voice::setVolume(float value) {
-		m_volume.store(std::clamp(value, 0.0f, 1.0f));
+		m_volume = std::clamp(value, 0.0f, 1.0f);
 	}
 
 	float Voice::getVolume() const {
-		return m_volume.load();
+		return m_volume;
 	}
 
 	void Voice::setLooping(bool value) {
@@ -216,7 +212,7 @@ namespace siren {
 	}
 
 	float Voice::getPan() const {
-		return m_pan.load();
+		return m_pan;
 	}
 
 	bool Voice::isLooping() const {
@@ -243,7 +239,7 @@ namespace siren {
 
 	void Voice::setGlobal() {
 		m_mode = VoiceMode::Global;
-		m_pan.store(0.0f); // Reset pan
+		m_pan = 0.0f; // Reset pan
 	}
 
 	void Voice::setDistance(float minDistance, float maxDistance) {
