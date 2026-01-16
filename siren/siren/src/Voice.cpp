@@ -106,14 +106,14 @@ namespace siren {
 	}
 
 	void Voice::update(float deltaTime, const ListenerData& listener) {
-		float vol = 1.0f;
-		float pan = 0.0f;
+		float volume;
+		float pan;
 		if (m_mode == VoiceMode::Spatial) {
 			// Distance based volume
 			float distance = (m_position - listener.position).length();
 			distance = std::clamp(distance, m_minDistance, m_maxDistance);
 			float fraction = (distance - m_minDistance) / (m_maxDistance - m_minDistance);
-			vol = 1.0f - fraction;
+			volume = 1.0f - fraction;
 
 			// Listener based panning
 			Vector3 listenerToEmitter = normalize(m_position - listener.position);
@@ -122,6 +122,7 @@ namespace siren {
 			pan = right * listenerToEmitter;
 		}
 		else {
+			volume = m_volume.load();
 			pan = m_pan.load();
 		}
 
@@ -129,8 +130,8 @@ namespace siren {
 		float angle = panNormalized * static_cast<float>(M_PI_2); // Angle between 0 and PI/2 radians
 
 		// Apply pan and volume
-		float gainL = std::cos(angle) * vol;
-		float gainR = std::sin(angle) * vol;
+		float gainL = std::cos(angle) * volume;
+		float gainR = std::sin(angle) * volume;
 		m_gainL.store(gainL);
 		m_gainR.store(gainR);
 
@@ -144,6 +145,7 @@ namespace siren {
 		}
 		else {
 			// Approximate voice velocity
+			// TODO: Interpolation
 			Vector3 distance = m_position - m_previousPosition;
 			m_velocity = distance / deltaTime;
 		}
@@ -181,6 +183,14 @@ namespace siren {
 
 	void Voice::setPan(float value) {
 		m_pan.store(std::clamp(value, -1.0f, 1.0f));
+	}
+
+	void Voice::setVolume(float value) {
+		m_volume.store(std::clamp(value, 0.0f, 1.0f));
+	}
+
+	float Voice::getVolume() const {
+		return m_volume.load();
 	}
 
 	void Voice::setLooping(bool value) {

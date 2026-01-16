@@ -152,6 +152,7 @@ namespace siren {
 		}
 		else {
 			// Approximate listener velocity
+			// TODO: Interpolation
 			Vector3 distance = listener.position - m_previousListenerPos;
 			listener.velocity = distance / deltaTime;
 

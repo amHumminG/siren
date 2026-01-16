@@ -86,6 +86,12 @@ namespace siren {
 		/// @param value New pan (clamped between -1.0f and 1.0f)
 		void setPan(float value);
 
+		/// @brief Sets voice volume (clamped between 0.0f and 1.0f)
+		void setVolume(float value);
+
+		/// @return The current volume of the voice (between 0.0f and 1.0f)
+		float getVolume() const;
+
 		/// @param value New value
 		void setLooping(bool value);
 
