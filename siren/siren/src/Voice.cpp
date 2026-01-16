@@ -117,7 +117,7 @@ namespace siren {
 
 			// Listener based panning
 			Vector3 listenerToEmitter = normalize(m_position - listener.position);
-			Vector3 right = normalize(listener.right);
+			Vector3 right = listener.right;
 
 			pan = right * listenerToEmitter;
 		}

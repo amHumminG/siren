@@ -192,10 +192,10 @@ namespace siren {
 		m_listener.up = normalize(up);
 
 		if (m_coordinateSystem == CoordinateSystem::RightHanded) {
-			m_listener.right = crossMultiply(m_listener.forward, m_listener.up);
+			m_listener.right = normalize(crossMultiply(m_listener.forward, m_listener.up));
 		}
 		else {
-			m_listener.right = crossMultiply(m_listener.up, m_listener.forward);
+			m_listener.right = normalize(crossMultiply(m_listener.up, m_listener.forward));
 		}
 	}
 
