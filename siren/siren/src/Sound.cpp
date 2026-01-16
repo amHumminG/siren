@@ -37,8 +37,11 @@ namespace siren {
 	}
 
 	Sound Sound::Stream(const std::string& path, const std::string& tag) {
-		std::string finalTag = tag.empty() ? path : tag;
-		Sound sound(SoundType::Stream, tag);
+		std::string finalTag = tag;
+		if (tag.empty()) {
+			finalTag = std::filesystem::path(path).filename().string();
+		}
+		Sound sound(SoundType::Stream, finalTag);
 		sound.m_path = path;
 
 		if (!std::filesystem::exists(path)) {
