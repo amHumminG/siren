@@ -120,6 +120,7 @@ int main() {
 			{ cameraFwd.x, cameraFwd.y, cameraFwd.z },
 			{ camera.up.x, camera.up.y, camera.up.z }
 		);
+		context.update(deltaTime);
 
 		if (mouseLock) {
 
@@ -204,10 +205,37 @@ int main() {
 		// Display numeric values below
 		ImGui::Text("%.2f  %.2f  %.2f", masterVol, musicVol, sfxVol);
 
-		ImGui::Separator();
+		// LISTENER INFO
+		siren::ListenerData listener = context.getListener();
 
-		ImGui::Text("Scenarios:");
-		ImGui::Separator();
+		ImGui::SeparatorText("Listener Info");
+		ImGui::BeginDisabled();
+
+		float pos[3] = { listener.position.x, listener.position.y, listener.position.z };
+		// We use InputFloat3 with ReadOnly flag so you can copy-paste values but not edit them
+		ImGui::InputFloat3("Position", pos, "%.2f", ImGuiInputTextFlags_ReadOnly);
+
+		float fwd[3] = { listener.forward.x, listener.forward.y, listener.forward.z };
+		ImGui::InputFloat3("Forward", fwd, "%.2f", ImGuiInputTextFlags_ReadOnly);
+
+		float up[3] = { listener.up.x, listener.up.y, listener.up.z };
+		ImGui::InputFloat3("Up", up, "%.2f", ImGuiInputTextFlags_ReadOnly);
+
+		float vel[3] = { listener.velocity.x, listener.velocity.y, listener.velocity.z };
+		ImGui::InputFloat3("Velocity", vel, "%.2f", ImGuiInputTextFlags_ReadOnly);
+
+		ImGui::EndDisabled();
+
+		// Calculate Speed (Magnitude)
+		float speed = std::sqrt(listener.velocity.x * listener.velocity.x +
+			listener.velocity.y * listener.velocity.y +
+			listener.velocity.z * listener.velocity.z);
+
+		ImGui::Text("Speed: ");
+		ImGui::SameLine();
+		ImGui::TextColored(ImVec4(0, 1, 0, 1), "%.2f m/s", speed);
+
+		ImGui::SeparatorText("Scenarios");
 
 		for (auto& scenario : scenarios) {
 			bool isSelected = (selectedScenario == scenario.get());
