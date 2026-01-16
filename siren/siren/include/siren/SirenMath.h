@@ -28,6 +28,11 @@ namespace siren {
 			return Vector3(x * scalar, y * scalar, z * scalar);
 		}
 
+		Vector3 operator/(float scalar) const {
+			float inverse = 1.0f / scalar;
+			return Vector3(x * inverse, y * inverse, z * inverse);
+		}
+
 		float length() const {
 			return sqrt((x * x) + (y * y) + (z * z));
 		}
@@ -68,5 +73,6 @@ namespace siren {
 		Vector3 forward;
 		Vector3 up;
 		Vector3 right;
+		Vector3 velocity;
 	};
 }

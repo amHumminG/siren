@@ -30,6 +30,8 @@ namespace siren {
 		std::atomic<float> m_volume{ 1.0f };	// clamped between 0.0f and 1.0f
 		std::atomic<float> m_pan{ 0.0f };	// clamped between -1.0f and 1.0f
 		std::atomic<float> m_isLooping{ false };
+		std::atomic<float> m_gainL{ 1.0f };
+		std::atomic<float> m_gainR{ 1.0f };
 
 		std::atomic<int64_t> m_seekFrame{ -1 }; // Seek request flag (-1 = No pending seek)
 		uint32_t m_sampleRate = 0; // Stored to be used for frame to seconds conversion
@@ -38,8 +40,13 @@ namespace siren {
 
 		// Emitter data
 		Vector3 m_position; // The position of the voice
+		Vector3 m_previousPosition; // The position of the voice from the previous frame
+
 		float m_minDistance = 1.0f; // Minimum distance the voice can be heard from (for volume scaling)
 		float m_maxDistance = 50.0f; // Maximum distance the voice can be heard from (for volume scaling)
+
+		Vector3 m_velocity; // The velocity of the voice (will be used if provided for that frame)
+		bool m_velocitySetThisFrame = false; // True if velocity has been manualy set for that frame
 
 	public:
 		Voice() = default;
@@ -54,7 +61,12 @@ namespace siren {
 		/// 
 		/// Supports [Mono, Stereo]
 		/// @return True if voice is still alive, otherwise false
-		bool mix(const ListenerData& listener);
+		bool mix();
+
+		/// @brief Called every frame by the context. Updates all relevant audio logic for that frame
+		/// @param deltaTime Frame time difference
+		/// @param listener All necessary information about the listener
+		void update(float deltaTime, const ListenerData& listener);
 
 		/// @brief Sets voice state to Playing
 		///
@@ -98,6 +110,9 @@ namespace siren {
 		/// @brief Sets the voice position and sets mode to spatial if
 		/// voice is in any other mode
 		void setPosition(const Vector3& pos);
+
+		/// @brief Sets the voice velocity for a specific frame (optional manual override) 
+		void setVelocity(const Vector3& vel);
 
 		/// @brief Sets voice mode to Global
 		void setGlobal();

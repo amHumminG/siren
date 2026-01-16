@@ -20,7 +20,7 @@ namespace siren {
 		m_decoder = std::move(decoder);
 	}
 
-	bool Voice::mix(const ListenerData& listener) {
+	bool Voice::mix() {
 		VoiceState state = m_state.load();
 		if (state == VoiceState::Inactive || !m_decoder) {
 			return false; // Dead
@@ -48,34 +48,9 @@ namespace siren {
 		size_t framesRead = 0;
 		size_t decoderChannelCount = m_decoder->getChannelCount();
 
-		float pan = m_pan.load();
 		bool isLooping = m_isLooping.load();
-
-		float panNormalized = (pan + 1.0f) * 0.5f;
-		float angle = panNormalized * static_cast<float>(M_PI_2); // Angle between 0 and PI/2 radians
-
-		float gainL = std::cos(angle);
-		float gainR = std::sin(angle);
-
-		if (m_mode == VoiceMode::Spatial) {
-			// Distance based volume
-			float distance = (m_position - listener.position).length();
-			distance = std::clamp(distance, m_minDistance, m_maxDistance);
-			float fraction = (distance - m_minDistance) / (m_maxDistance - m_minDistance);
-			float volume = 1.0f - fraction;
-
-			// Listener based panning
-			Vector3 listenerToEmitter = normalize(m_position - listener.position);
-			Vector3 right = normalize(listener.right);
-
-			float pan = right * listenerToEmitter;
-			panNormalized = (pan + 1.0f) * 0.5f;
-			angle = panNormalized * static_cast<float>(M_PI_2);
-
-			// Apply pan and volume
-			gainL =  cos(angle) * volume;
-			gainR = sin(angle) * volume;
-		}
+		float gainL = m_gainL.load();
+		float gainR = m_gainR.load();
 
 		while (framesRead < framesRequested) {
 
@@ -128,6 +103,48 @@ namespace siren {
 			}
 		}
 		return m_state.load() != VoiceState::Inactive;
+	}
+
+	void Voice::update(float deltaTime, const ListenerData& listener) {
+		float vol = 1.0f;
+		float pan = 0.0f;
+		if (m_mode == VoiceMode::Spatial) {
+			// Distance based volume
+			float distance = (m_position - listener.position).length();
+			distance = std::clamp(distance, m_minDistance, m_maxDistance);
+			float fraction = (distance - m_minDistance) / (m_maxDistance - m_minDistance);
+			vol = 1.0f - fraction;
+
+			// Listener based panning
+			Vector3 listenerToEmitter = normalize(m_position - listener.position);
+			Vector3 right = normalize(listener.right);
+
+			pan = right * listenerToEmitter;
+		}
+		else {
+			pan = m_pan.load();
+		}
+
+		float panNormalized = (pan + 1.0f) * 0.5f;
+		float angle = panNormalized * static_cast<float>(M_PI_2); // Angle between 0 and PI/2 radians
+
+		// Apply pan and volume
+		float gainL = std::cos(angle) * vol;
+		float gainR = std::sin(angle) * vol;
+		m_gainL.store(gainL);
+		m_gainR.store(gainR);
+
+		// Velocity
+		if (m_velocitySetThisFrame) {
+			m_velocitySetThisFrame = false;
+		}
+		else {
+			// Approximate voice velocity
+			Vector3 distance = m_position - m_previousPosition;
+			m_velocity = distance / deltaTime;
+		}
+
+		// TODO: Use velocity for doppler effect
 	}
 
 	void Voice::play() {
@@ -199,8 +216,14 @@ namespace siren {
 		m_mode = VoiceMode::Spatial;
 	}
 
+	void Voice::setVelocity(const Vector3& vel) {
+		m_velocity = vel;
+		m_velocitySetThisFrame = true;
+	}
+
 	void Voice::setGlobal() {
 		m_mode = VoiceMode::Global;
+		m_pan.store(0.0f); // Reset pan
 	}
 
 	void Voice::setDistance(float minDistance, float maxDistance) {

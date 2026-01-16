@@ -35,7 +35,9 @@ namespace siren {
 		
 		CoordinateSystem m_coordinateSystem = CoordinateSystem::LeftHanded;
 		ListenerData m_listener; // Represents the listener (most likely the player)
-		std::mutex m_listenerMutex;
+		Vector3 m_previousListenerPos;
+		bool m_listenerVelocitySetThisFrame = false;
+		mutable std::mutex m_listenerMutex; // Mutable for use in getListener()
 
 		/// @brief Writes audio data to the device
 		/// @param pDevice The device
@@ -61,6 +63,11 @@ namespace siren {
 		/// @return True if deinitialization was successful, otherwise false
 		bool deinit();
 
+		/// @brief Central update function to be called each frame.
+		/// Handles all audio logic
+		/// @param deltaTime Frame time difference
+		void update(float deltaTime);
+
 		/// @brief Sets the orientation of the coordinatesystem
 		void setCoordinateSystem(CoordinateSystem system);
 
@@ -69,6 +76,24 @@ namespace siren {
 		/// @param fwd The direction the listener is facing
 		/// @param up The up vector from the listener (Should be orthogonal to fwd)
 		void setListener(const Vector3& pos, const Vector3& fwd, const Vector3& up);
+
+		/// @brief Sets the listener position
+		void setListenerPos(const Vector3& pos);
+
+		/// @brief Sets the listener orientation
+		/// @param fwd The direction the listener is facing
+		/// @param up The up vector from the listener (Should be orthogonal to fwd)
+		void setListenerOrientation(const Vector3& fwd, const Vector3& up);
+
+		/// @brief Manual velocity override 
+		/// (Use this if you have velocity data to avoid engine approximation)
+		void setListenerVelocity(const Vector3& vel);
+
+		/// @return All listener data currently stored in the context
+		///
+		/// Note that if no velocity was provided for a frame, it will be approximated
+		/// by the engine
+		ListenerData getListener() const;
 
 		/// @brief Creates a bus with the specified name
 		/// @param busName The name of the bus

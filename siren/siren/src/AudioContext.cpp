@@ -40,9 +40,9 @@ namespace siren {
 		for (auto it = voices.begin(); it != voices.end(); ) {
 			auto& voice = *it;
 
-			bool alive = voice->mix(context->m_listener);
+			bool alive = voice->mix();
 			if (!alive) {
-				it = voices.erase(it);
+				it = voices.erase(it); // TODO: Queue deletion to be done in update()
 			}
 			else {
 				it++;
@@ -140,14 +140,54 @@ namespace siren {
 		return true;
 	}
 
+	void AudioContext::update(float deltaTime) {
+		ListenerData listener;
+		{
+			std::lock_guard<std::mutex> lock(m_listenerMutex);
+			listener = m_listener;
+		}
+
+		if (m_listenerVelocitySetThisFrame) {
+			m_listenerVelocitySetThisFrame = false;
+		}
+		else {
+			// Approximate listener velocity
+			Vector3 distance = listener.position - m_previousListenerPos;
+			listener.velocity = distance / deltaTime;
+
+			// Update listener with approximated velocity
+			{
+				std::lock_guard<std::mutex> lock(m_listenerMutex);
+				m_listener.velocity = listener.velocity;
+			}
+		}
+
+		// Voice updates
+		for (auto& voice : m_voiceRegistry) {
+			voice->update(deltaTime, listener);
+		}
+
+		m_previousListenerPos = listener.position;
+	}
+
 	void AudioContext::setCoordinateSystem(CoordinateSystem system) {
 		m_coordinateSystem = system;
 	}
 
 	void AudioContext::setListener(const Vector3& pos, const Vector3& fwd, const Vector3& up) {
+		setListenerPos(pos);
+		setListenerOrientation(fwd, up);
+	}
+
+	void AudioContext::setListenerPos(const Vector3& pos) {
 		std::lock_guard<std::mutex> lock(m_listenerMutex);
 
 		m_listener.position = pos;
+	}
+
+	void AudioContext::setListenerOrientation(const Vector3& fwd, const Vector3& up) {
+		std::lock_guard<std::mutex> lock(m_listenerMutex);
+
 		m_listener.forward = normalize(fwd);
 		m_listener.up = normalize(up);
 
@@ -157,6 +197,17 @@ namespace siren {
 		else {
 			m_listener.right = crossMultiply(m_listener.up, m_listener.forward);
 		}
+	}
+
+	void AudioContext::setListenerVelocity(const Vector3& vel) {
+		std::lock_guard<std::mutex> lock(m_listenerMutex);
+		m_listener.velocity = vel;
+		m_listenerVelocitySetThisFrame = true;
+	}
+
+	ListenerData AudioContext::getListener() const {
+		std::lock_guard<std::mutex> lock(m_listenerMutex);
+		return m_listener;
 	}
 
 	bool AudioContext::createBus(const std::string& busName) {
