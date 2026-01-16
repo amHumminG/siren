@@ -74,7 +74,7 @@ namespace siren {
 		/// @brief Sets the listener data
 		/// @param pos The position of the listener
 		/// @param fwd The direction the listener is facing
-		/// @param up The up vector from the listener (Should be orthogonal to fwd)
+		/// @param up The up vector from the listener
 		void setListener(const Vector3& pos, const Vector3& fwd, const Vector3& up);
 
 		/// @brief Sets the listener position
@@ -82,7 +82,7 @@ namespace siren {
 
 		/// @brief Sets the listener orientation
 		/// @param fwd The direction the listener is facing
-		/// @param up The up vector from the listener (Should be orthogonal to fwd)
+		/// @param up The up vector from the listener
 		void setListenerOrientation(const Vector3& fwd, const Vector3& up);
 
 		/// @brief Manual velocity override 
