@@ -20,7 +20,7 @@ namespace siren {
 		m_decoder = std::move(decoder);
 	}
 
-	bool Voice::mix() {
+	bool Voice::mix() noexcept {
 		VoiceState state = m_state.load();
 		if (state == VoiceState::Inactive || !m_decoder) {
 			return false; // Dead

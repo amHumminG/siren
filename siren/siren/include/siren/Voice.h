@@ -63,7 +63,7 @@ namespace siren {
 		/// 
 		/// Supports [Mono, Stereo]
 		/// @return True if voice is still alive, otherwise false
-		[[nodiscard]] bool mix();
+		[[nodiscard]] bool mix() noexcept;
 
 		/// @brief Called every frame by the context. Updates all relevant audio logic for that frame
 		/// @param deltaTime Frame time difference

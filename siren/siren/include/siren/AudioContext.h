@@ -52,7 +52,7 @@ namespace siren {
 		/// @param busName The name of the bus
 		/// @return A pointer to the audio bus or nullptr if no bus 
 		/// with the specified name exist
-		AudioBus* getBus(const std::string& busName);
+		AudioBus* getBus(const std::string& busName) noexcept;
 
 	public:
 		AudioContext();

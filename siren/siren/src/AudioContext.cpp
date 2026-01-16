@@ -70,7 +70,7 @@ namespace siren {
 		}
 	}
 
-	AudioBus* AudioContext::getBus(const std::string& busName) {
+	AudioBus* AudioContext::getBus(const std::string& busName) noexcept {
 		std::shared_lock<std::shared_mutex> lock(m_busMutex);
 
 		auto it = m_busRegistry.find(busName);
