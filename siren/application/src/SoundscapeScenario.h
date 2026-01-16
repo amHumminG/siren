@@ -153,12 +153,11 @@ public:
 		else {
 			ImGui::TextColored(ImVec4(1, 0, 0, 1), "Paused/Stopped");
 		}
-		ImGui::Separator();
 
 		ImGui::Checkbox("Soundtrack Active", &m_soundtrackPlaying);
-		ImGui::Separator();
 
-		ImGui::Text("Sound Effects");
+		ImGui::SeparatorText("Sound Effects");
+
 		ImGui::Text("Effects: %zu", m_sfx.size());
 		ImGui::Text("Spawn Range (From Origo)");
 		ImGui::SliderFloat("##SpawnRange", &m_spawnRange, 0.10f, 50.0f);
