@@ -151,15 +151,20 @@ namespace siren {
 			m_listenerVelocitySetThisFrame = false;
 		}
 		else {
-			// Approximate listener velocity
-			// TODO: Interpolation
-			Vector3 distance = listener.position - m_previousListenerPos;
-			listener.velocity = distance / deltaTime;
+			if (deltaTime > 0.00001) {
+				// Approximate listener velocity
+				Vector3 distance = listener.position - m_previousListenerPos;
+				Vector3 rawVelocity = distance / deltaTime;
 
-			// Update listener with approximated velocity
-			{
-				std::lock_guard<std::mutex> lock(m_listenerMutex);
-				m_listener.velocity = listener.velocity;
+				// Exponential smoothing of listener velocity
+				float smoothingFactor = std::clamp(deltaTime * m_listenerVelocitySmoothing, 0.0f, 1.0f);
+				listener.velocity = listener.velocity + (rawVelocity - listener.velocity) * smoothingFactor;
+
+				// Update listener with approximated velocity
+				{
+					std::lock_guard<std::mutex> lock(m_listenerMutex);
+					m_listener.velocity = listener.velocity;
+				}
 			}
 		}
 
@@ -204,6 +209,14 @@ namespace siren {
 		std::lock_guard<std::mutex> lock(m_listenerMutex);
 		m_listener.velocity = vel;
 		m_listenerVelocitySetThisFrame = true;
+	}
+
+	void AudioContext::setListenerVelocitySmoothing(float value) {
+		m_listenerVelocitySmoothing = value;
+	}
+
+	void AudioContext::setDefaultVoiceVelocitySmoothing(float value) {
+		m_defaultVoiceVelocitySmoothing = value;
 	}
 
 	ListenerData AudioContext::getListener() const {
@@ -277,6 +290,7 @@ namespace siren {
 			voice->attachDecoder(std::move(result.value()));
 		}
 		voice->setTag(sound.getTag());
+		voice->setVelocitySmoothing(m_defaultVoiceVelocitySmoothing);
 		AudioBus* bus = getBus(busName);
 		if (bus == nullptr) {
 			SIREN_LOG_WARNING("AudioContext::Play() No bus with name: " << busName << " exists. Defaulting to Master");

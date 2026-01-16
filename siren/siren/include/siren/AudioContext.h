@@ -38,6 +38,9 @@ namespace siren {
 		Vector3 m_previousListenerPos;
 		bool m_listenerVelocitySetThisFrame = false;
 		mutable std::mutex m_listenerMutex; // Mutable for use in getListener()
+		
+		float m_listenerVelocitySmoothing = 20.0f;
+		float m_defaultVoiceVelocitySmoothing = 10.0f; // Default set to all new voices
 
 		/// @brief Writes audio data to the device
 		/// @param pDevice The device
@@ -88,6 +91,13 @@ namespace siren {
 		/// @brief Manual velocity override 
 		/// (Use this if you have velocity data to avoid engine approximation)
 		void setListenerVelocity(const Vector3& vel);
+
+		/// @brief Sets the velocity smoothing used for listener (low value = high smoothing)
+		void setListenerVelocitySmoothing(float value);
+
+		/// @brief Sets the default velocity smoothing default given to all new voices
+		/// (low value = high smoothing)
+		void setDefaultVoiceVelocitySmoothing(float value);
 
 		/// @return All listener data currently stored in the context
 		///

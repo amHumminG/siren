@@ -133,19 +133,26 @@ namespace siren {
 
 		// Velocity
 		if (m_velocitySetThisFrame) {
+			// Velocity has been manually overridden and does not need to be calculated
 			m_velocitySetThisFrame = false;
 		}
 		else if (m_firstUpdate) {
+			// First update -> don't calculate velocity
 			m_velocity = { 0.0f, 0.0f, 0.0f };
-			m_firstUpdate = false;
 		}
 		else {
-			// Approximate voice velocity
-			// TODO: Interpolation
-			Vector3 distance = m_position - m_previousPosition;
-			m_velocity = distance / deltaTime;
+			if (deltaTime > 0.00001) {
+				// Approximate voice velocity
+				Vector3 distance = m_position - m_previousPosition;
+				Vector3 rawVelocity = distance / deltaTime;
+
+				// Exponential smoothing of velocity
+				float smoothingFactor = std::clamp(deltaTime * m_velocitySmoothing, 0.0f, 1.0f);
+				m_velocity = m_velocity + (rawVelocity - m_velocity) * smoothingFactor;
+			}
 		}
 
+		m_firstUpdate = false;
 		m_previousPosition = m_position;
 
 		// TODO: Use velocity for doppler effect
@@ -231,6 +238,10 @@ namespace siren {
 	void Voice::setVelocity(const Vector3& vel) {
 		m_velocity = vel;
 		m_velocitySetThisFrame = true;
+	}
+
+	void Voice::setVelocitySmoothing(float value) {
+		m_velocitySmoothing = value;
 	}
 
 	Vector3 Voice::getVelocity() const {

@@ -48,6 +48,7 @@ namespace siren {
 
 		Vector3 m_velocity; // The velocity of the voice (will be used if provided for that frame)
 		bool m_velocitySetThisFrame = false; // True if velocity has been manualy set for that frame
+		float m_velocitySmoothing = 10.0f;
 
 	public:
 		Voice() = default;
@@ -120,6 +121,10 @@ namespace siren {
 
 		/// @brief Sets the voice velocity for a specific frame (optional manual override) 
 		void setVelocity(const Vector3& vel);
+
+		/// @brief Sets the velocity smoothing used by the exponential smoothing algorithm
+		/// for smoothing approximated voice velocity
+		void setVelocitySmoothing(float value);
 
 		/// @return The current velocity of the voice
 		///
