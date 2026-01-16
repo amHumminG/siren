@@ -80,9 +80,8 @@ public:
 		else {
 			ImGui::TextColored(ImVec4(1, 0, 0, 1), "Stopped");
 		}
-		ImGui::Separator();
 
-		ImGui::Text("Motion");
+		ImGui::SeparatorText("Motion");
 		ImGui::Checkbox("Orbit Active", &m_isOrbiting);
 		if (m_isOrbiting) {
 			ImGui::SliderFloat("Speed", &m_speed, 0.0f, 10.0f);
@@ -93,8 +92,25 @@ public:
 		}
 		ImGui::SliderFloat("Height", &m_height, -10.0f, 20.0f);
 
-		ImGui::Separator();
-		ImGui::Text("Attenuation");
+
+		siren::Vector3 voiceVelocity = m_voice.get()->getVelocity();
+		ImGui::BeginDisabled();
+		float vel[3] = { voiceVelocity.x, voiceVelocity.y, voiceVelocity.z };
+		ImGui::InputFloat3("Velocity", vel, "%.2f", ImGuiInputTextFlags_ReadOnly);
+		ImGui::EndDisabled();
+
+		// Calculate Speed (Magnitude)
+		float speed = std::sqrt(
+			voiceVelocity.x * voiceVelocity.x +
+			voiceVelocity.y * voiceVelocity.y +
+			voiceVelocity.z * voiceVelocity.z
+		);
+
+		ImGui::Text("Speed: ");
+		ImGui::SameLine();
+		ImGui::TextColored(ImVec4(0, 1, 0, 1), "%.2f m/s", speed);
+
+		ImGui::SeparatorText("Attenuation");
 		ImGui::TextColored(ImVec4(0, 1, 0, 1), "Min Distance (Green)");
 		ImGui::SliderFloat("##MinDist", &m_minDist, 0.1f, 20.0f);
 		ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "Max Distance (Gray)");
