@@ -62,7 +62,7 @@ namespace siren {
 		/// 
 		/// Supports [Mono, Stereo]
 		/// @return True if voice is still alive, otherwise false
-		bool mix();
+		[[nodiscard]] bool mix();
 
 		/// @brief Called every frame by the context. Updates all relevant audio logic for that frame
 		/// @param deltaTime Frame time difference
@@ -100,13 +100,13 @@ namespace siren {
 		void seek(float timePoint);
 
 		/// @return Current pan
-		[[nodiscard]] float getPan() const;
+		float getPan() const;
 
 		/// @return True if voice is looping, otherwise false
-		[[nodiscard]] bool isLooping() const;
+		bool isLooping() const;
 
 		/// @return True if voice state = Playing, otherwise false
-		[[nodiscard]] bool isPlaying() const;
+		bool isPlaying() const;
 
 		/// @brief Sets the voice position and sets mode to spatial if
 		/// voice is in any other mode
