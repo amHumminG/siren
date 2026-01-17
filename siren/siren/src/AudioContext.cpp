@@ -66,10 +66,8 @@ namespace siren {
 
 		float masterVolume = masterBus->m_volume;
 		for (size_t i = 0; i < requestedSamples; i++) {
-			outBuffer[i] = masterBus->m_buffer[i] * masterVolume;
+			outBuffer[i] = std::clamp(masterBus->m_buffer[i] * masterVolume, -1.0f, 1.0f);
 		}
-
-		// TODO: Clamp final output. Preferably using soft clipping
 	}
 
 	AudioBus* AudioContext::getBus(const std::string& busName) noexcept {
