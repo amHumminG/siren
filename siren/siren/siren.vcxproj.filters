@@ -63,7 +63,7 @@
     <ClInclude Include="include\siren\SirenMath.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Resampler.h">
+    <ClInclude Include="include\siren\Resampler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

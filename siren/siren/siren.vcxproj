@@ -147,7 +147,7 @@
     <ClInclude Include="include\siren\Utils.h" />
     <ClInclude Include="include\siren\Voice.h" />
     <ClInclude Include="src\internal\log.h" />
-    <ClInclude Include="src\Resampler.h" />
+    <ClInclude Include="include\siren\Resampler.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\AudioBus.cpp" />

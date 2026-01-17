@@ -24,7 +24,7 @@ namespace siren {
 		void init(uint16_t channelCount);
 		
 		/// @brief Resets resampler state
-		void flush();
+		void flush() noexcept;
 
 		/// @brief Fills the destination buffer with pitch shifted audio
 		/// @param dst Destination buffer to be filled 
@@ -32,6 +32,6 @@ namespace siren {
 		/// @param dataProvider Function that fetches raw data from the decoder
 		/// @return Number of frames written to the destination buffer
 		size_t getSamples(std::span<float> dst, float pitch,
-			std::function<size_t(std::span<float>)> dataProvider);
+			std::function<size_t(std::span<float>)> dataProvider) noexcept;
 	};
 }

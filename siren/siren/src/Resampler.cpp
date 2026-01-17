@@ -1,4 +1,4 @@
-#include "Resampler.h"
+#include "siren/Resampler.h"
 #include <cmath>
 #include <algorithm>
 #include <cstring>
@@ -13,13 +13,13 @@ namespace siren {
 		m_inputBuffer.assign(maxFramesNeeded * m_channels, 0.0f);
 	}
 
-	void Resampler::flush() {
+	void Resampler::flush() noexcept {
 		m_cursor = 0.0f;
 		m_validInputFrames = 0;
 	}
 
 	size_t Resampler::getSamples(std::span<float> dst, float pitch, 
-		std::function<size_t(std::span<float>)> dataProvider) {
+		std::function<size_t(std::span<float>)> dataProvider) noexcept {
 		if (m_channels == 0) {
 			return 0;
 		}
