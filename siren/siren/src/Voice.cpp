@@ -46,8 +46,10 @@ namespace siren {
 		float pitch = m_pitch.load() * m_dopplerPitch.load();
 
 		constexpr size_t BUFFER_FRAMES = 256;
+		// TODO: This 2 represents the maximum number of channels and should be a constant like MAX_CHANNELS
 		std::array<float, BUFFER_FRAMES * 2> intermediateBuffer;
 
+		// TODO: This 2 represents output channels and should probably be aquired from the output bus
 		size_t framesRequested = dst.size() / 2;
 		size_t framesRead = 0;
 
