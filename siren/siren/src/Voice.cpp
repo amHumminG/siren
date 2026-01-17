@@ -33,7 +33,9 @@ namespace siren {
 		// Handle seek requests
 		int64_t seekRequest = m_seekFrame.exchange(-1);
 		if (seekRequest >= 0 && m_decoder) {
-			m_decoder->seek(static_cast<size_t>(seekRequest));
+			if (m_decoder->seek(static_cast<size_t>(seekRequest)) == ResultCode::Success) {
+				m_resampler.flush();
+			}
 		}
 
 		if (!m_bus) {
@@ -41,24 +43,29 @@ namespace siren {
 		}
 		std::span<float> dst = m_bus->m_buffer;
 
+		float pitch = m_pitch.load() * m_dopplerPitch.load();
+
 		constexpr size_t BUFFER_FRAMES = 256;
 		std::array<float, BUFFER_FRAMES * 2> intermediateBuffer;
 
 		size_t framesRequested = dst.size() / 2;
 		size_t framesRead = 0;
-		size_t decoderChannelCount = m_decoder->getChannelCount();
 
+		size_t decoderChannels = m_decoder->getChannelCount();
 		bool isLooping = m_isLooping.load();
 		float gainL = m_gainL.load();
 		float gainR = m_gainR.load();
 
+		auto dataProvider = [&](std::span<float> buffer) -> size_t {
+			return m_decoder->decode(buffer);
+			};
+
 		while (framesRead < framesRequested) {
 
 			size_t framesToDecode = std::min(framesRequested - framesRead, BUFFER_FRAMES);
-			std::span<float> bufferView(intermediateBuffer.data(), framesToDecode * decoderChannelCount);
+			std::span<float> resamplerOutput(intermediateBuffer.data(), framesToDecode * decoderChannels);
 
-			size_t framesDecoded = m_decoder->decode(bufferView);
-			size_t framesThisIteration = framesDecoded;
+			size_t framesDecoded = m_resampler.getSamples(resamplerOutput, pitch, dataProvider);
 
 			if (framesDecoded < framesToDecode) {
 				// Hit EOF
@@ -74,11 +81,11 @@ namespace siren {
 			}
 
 			// Mix and add to destination buffer
-			for (size_t i = 0; i < framesThisIteration; i++) {
+			for (size_t i = 0; i < framesDecoded; i++) {
 				float sampleL;
 				float sampleR;
 
-				if (decoderChannelCount == 1) {
+				if (decoderChannels == 1) {
 					// Mono
 					sampleL = intermediateBuffer[i];
 					sampleR = intermediateBuffer[i];
@@ -97,7 +104,7 @@ namespace siren {
 				dst[dstIndex + 1]	+= sampleR;
 			}
 
-			framesRead += framesThisIteration;
+			framesRead += framesDecoded;
 			if (m_state.load() != VoiceState::Playing) {
 				break;
 			}
@@ -168,6 +175,7 @@ namespace siren {
 					return;
 				}
 			}
+			m_resampler.init(m_decoder->getChannelCount());
 			m_state.store(VoiceState::Playing);
 		}
 	}
@@ -192,8 +200,8 @@ namespace siren {
 		m_volume = std::clamp(value, 0.0f, 1.0f);
 	}
 
-	float Voice::getVolume() const {
-		return m_volume;
+	void Voice::setPitch(float value) {
+		m_pitch.store(std::clamp(value, 0.1f, 4.0f));
 	}
 
 	void Voice::setLooping(bool value) {
@@ -220,6 +228,14 @@ namespace siren {
 
 	float Voice::getPan() const {
 		return m_pan;
+	}
+
+	float Voice::getVolume() const {
+		return m_volume;
+	}
+
+	float Voice::getPitch() const {
+		return m_pitch.load();
 	}
 
 	bool Voice::isLooping() const {

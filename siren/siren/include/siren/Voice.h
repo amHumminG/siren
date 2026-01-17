@@ -1,5 +1,6 @@
 #pragma once
 #include "siren/Decoder.h"
+#include "siren/Resampler.h"
 #include "siren/SirenMath.h"
 #include <atomic>
 #include <mutex>
@@ -24,6 +25,7 @@ namespace siren {
 		AudioBus* m_bus = nullptr;
 
 		std::unique_ptr<Decoder> m_decoder;
+		Resampler m_resampler;
 		
 		std::atomic<VoiceState> m_state{ VoiceState::Inactive };
 		VoiceMode m_mode = VoiceMode::Global;
@@ -32,6 +34,8 @@ namespace siren {
 		std::atomic<float> m_isLooping{ false };
 		std::atomic<float> m_gainL{ 1.0f };
 		std::atomic<float> m_gainR{ 1.0f };
+		std::atomic<float> m_pitch{ 1.0f };
+		std::atomic<float> m_dopplerPitch{ 1.0f };
 
 		std::atomic<int64_t> m_seekFrame{ -1 }; // Seek request flag (-1 = No pending seek)
 		uint32_t m_sampleRate = 0; // Stored to be used for frame to seconds conversion
@@ -90,8 +94,8 @@ namespace siren {
 		/// @brief Sets voice volume (clamped between 0.0f and 1.0f)
 		void setVolume(float value);
 
-		/// @return The current volume of the voice (between 0.0f and 1.0f)
-		float getVolume() const;
+		/// @brief Sets voice pitch (clampled between 0.1f and 4.0f)
+		void setPitch(float value);
 
 		/// @param value New value
 		void setLooping(bool value);
@@ -108,6 +112,12 @@ namespace siren {
 
 		/// @return Current pan
 		float getPan() const;
+
+		/// @return The current volume of the voice (between 0.0f and 1.0f)
+		float getVolume() const;
+
+		/// @return The voice pitch (between 0.1f and 4.0f)
+		float getPitch() const;
 
 		/// @return True if voice is looping, otherwise false
 		bool isLooping() const;
