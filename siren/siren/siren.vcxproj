@@ -147,10 +147,12 @@
     <ClInclude Include="include\siren\Utils.h" />
     <ClInclude Include="include\siren\Voice.h" />
     <ClInclude Include="src\internal\log.h" />
+    <ClInclude Include="src\Resampler.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\AudioBus.cpp" />
     <ClCompile Include="src\AudioContext.cpp" />
+    <ClCompile Include="src\Resampler.cpp" />
     <ClCompile Include="src\Sound.cpp" />
     <ClCompile Include="src\Voice.cpp" />
     <ClCompile Include="src\codecs\WavDecoder.cpp" />
