@@ -11,6 +11,8 @@
 #define M_PI_2 1.57079632679489661923
 #endif
 
+constexpr float SPEED_OF_SOUND = 343.0f; // m/s
+
 namespace siren {
 
 	void Voice::attachDecoder(std::unique_ptr<Decoder> decoder) {
@@ -164,7 +166,23 @@ namespace siren {
 		m_firstUpdate = false;
 		m_previousPosition = m_position;
 
-		// TODO: Use velocity for doppler effect
+		// Doppler pitch calculation (Relative Velocity Projection Formula)
+		Vector3 listenerToVoice = m_position - listener.position;
+		float distance = listenerToVoice.length();
+		if (distance < 0.001f) {
+			m_dopplerPitch.store(1.0f);
+		}
+		else {
+			// Project velocites onto listenerToVoice
+			listenerToVoice.normalize();
+			float listenerVel = listener.velocity * listenerToVoice;
+			float sourceVel = m_velocity * listenerToVoice;
+
+			float numerator = SPEED_OF_SOUND + (listenerVel * m_dopplerFactor);
+			float denominator = SPEED_OF_SOUND + (sourceVel * m_dopplerFactor);
+			float dopplerPitch = numerator / std::max(denominator, 0.1f);
+			m_dopplerPitch.store(std::clamp(dopplerPitch, 0.1f, 4.0f));
+		}
 	}
 
 	void Voice::play() {
@@ -206,6 +224,10 @@ namespace siren {
 		m_pitch.store(std::clamp(value, 0.1f, 4.0f));
 	}
 
+	void Voice::setDopplerFactor(float value) {
+		m_dopplerFactor = value;
+	}
+
 	void Voice::setLooping(bool value) {
 		m_isLooping.store(value);
 	}
@@ -238,6 +260,10 @@ namespace siren {
 
 	float Voice::getPitch() const {
 		return m_pitch.load();
+	}
+
+	float Voice::getDopplerFactor() const {
+		return m_dopplerFactor;
 	}
 
 	bool Voice::isLooping() const {

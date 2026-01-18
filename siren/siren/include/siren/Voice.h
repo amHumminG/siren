@@ -36,6 +36,7 @@ namespace siren {
 		std::atomic<float> m_gainR{ 1.0f };
 		std::atomic<float> m_pitch{ 1.0f };
 		std::atomic<float> m_dopplerPitch{ 1.0f };
+		float m_dopplerFactor = 1.0f;
 
 		std::atomic<int64_t> m_seekFrame{ -1 }; // Seek request flag (-1 = No pending seek)
 		uint32_t m_sampleRate = 0; // Stored to be used for frame to seconds conversion
@@ -97,6 +98,9 @@ namespace siren {
 		/// @brief Sets voice pitch (clampled between 0.1f and 4.0f)
 		void setPitch(float value);
 
+		/// @brief Sets the doppler factor (1.0f by default). Use this to increase doppler effect pitch impact
+		void setDopplerFactor(float value);
+
 		/// @param value New value
 		void setLooping(bool value);
 
@@ -118,6 +122,9 @@ namespace siren {
 
 		/// @return The voice pitch (between 0.1f and 4.0f)
 		float getPitch() const;
+
+		/// @return The doppler factor used to manipulate the pitch impact of the doppler effect
+		float getDopplerFactor() const;
 
 		/// @return True if voice is looping, otherwise false
 		bool isLooping() const;
