@@ -37,6 +37,7 @@ namespace siren {
 		std::atomic<float> m_pitch{ 1.0f };
 		std::atomic<float> m_dopplerPitch{ 1.0f };
 		float m_dopplerFactor = 1.0f;
+		bool m_dopplerEffect = true;
 
 		std::atomic<int64_t> m_seekFrame{ -1 }; // Seek request flag (-1 = No pending seek)
 		uint32_t m_sampleRate = 0; // Stored to be used for frame to seconds conversion
@@ -73,7 +74,8 @@ namespace siren {
 		/// @brief Called every frame by the context. Updates all relevant audio logic for that frame
 		/// @param deltaTime Frame time difference
 		/// @param listener All necessary information about the listener
-		void update(float deltaTime, const ListenerData& listener);
+		/// @param globalDopplerScale The global doppler scale used to adjust doppler effect pitch impact
+		void update(float deltaTime, const ListenerData& listener, float globalDopplerScale);
 
 		/// @brief Sets voice state to Playing
 		///
@@ -97,6 +99,9 @@ namespace siren {
 
 		/// @brief Sets voice pitch (clampled between 0.1f and 4.0f)
 		void setPitch(float value);
+
+		/// @brief Enables or disables the doppler effect for this voice (enabled by default)
+		void setDopplerEffect(bool value);
 
 		/// @brief Sets the doppler factor (1.0f by default). Use this to increase doppler effect pitch impact
 		void setDopplerFactor(float value);

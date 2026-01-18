@@ -170,7 +170,7 @@ namespace siren {
 
 		// Voice updates
 		for (auto& voice : m_voiceRegistry) {
-			voice->update(deltaTime, listener);
+			voice->update(deltaTime, listener, m_globalDopplerScale);
 		}
 
 		m_previousListenerPos = listener.position;
@@ -217,6 +217,14 @@ namespace siren {
 
 	void AudioContext::setDefaultVoiceVelocitySmoothing(float value) {
 		m_defaultVoiceVelocitySmoothing = value;
+	}
+
+	void AudioContext::setGlobalDopplerScale(float value) {
+		m_globalDopplerScale = value;
+	}
+
+	float AudioContext::getGlobalDopplerScale() const {
+		return m_globalDopplerScale;
 	}
 
 	ListenerData AudioContext::getListener() const {

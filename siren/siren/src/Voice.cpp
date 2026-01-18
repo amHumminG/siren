@@ -116,21 +116,69 @@ namespace siren {
 		return m_state.load() != VoiceState::Inactive;
 	}
 
-	void Voice::update(float deltaTime, const ListenerData& listener) {
+	void Voice::update(float deltaTime, const ListenerData& listener, float globalDopplerScale) {
 		float volume = m_volume;
 		float pan = m_pan;
+
 		if (m_mode == VoiceMode::Spatial) {
-			// Distance based volume
+			// DISTANCE BASED VOLUME
+			// TODO: Use inverse square law to calculate realistic volume dropoff
+			Vector3 listenerToEmitter = m_position - listener.position;
 			float distance = (m_position - listener.position).length();
-			distance = std::clamp(distance, m_minDistance, m_maxDistance);
-			float fraction = (distance - m_minDistance) / (m_maxDistance - m_minDistance);
+			float distanceClamped = std::clamp(distance, m_minDistance, m_maxDistance);
+			float fraction = (distanceClamped - m_minDistance) / (m_maxDistance - m_minDistance);
 			volume = 1.0f - fraction;
 
-			// Listener based panning
-			Vector3 listenerToEmitter = normalize(m_position - listener.position);
+			// SPATIAL PANNING
+			Vector3 listenerToEmitterNormalized = normalize(listenerToEmitter);
 			Vector3 right = listener.right;
+			pan = right * listenerToEmitterNormalized;
 
-			pan = right * listenerToEmitter;
+			// VELOCITY APPROXIMATION
+			if (m_velocitySetThisFrame) {
+				// Velocity has been manually overridden and does not need to be calculated
+				m_velocitySetThisFrame = false;
+			}
+			else if (m_firstUpdate) {
+				// First update -> don't calculate velocity
+				m_velocity = { 0.0f, 0.0f, 0.0f };
+			}
+			else {
+				if (deltaTime > 0.00001) {
+					// Approximate voice velocity
+					Vector3 distanceVec = m_position - m_previousPosition;
+					Vector3 rawVelocity = distanceVec / deltaTime;
+
+					// Exponential smoothing of velocity
+					float smoothingFactor = std::clamp(deltaTime * m_velocitySmoothing, 0.0f, 1.0f);
+					m_velocity = m_velocity + (rawVelocity - m_velocity) * smoothingFactor;
+				}
+			}
+
+			m_firstUpdate = false;
+			m_previousPosition = m_position;
+
+			// DOPPLER EFFECT
+			if (m_dopplerEffect) {
+				// Doppler pitch calculation (Relative Velocity Projection Formula)
+				if (distance < 0.001f) {
+					m_dopplerPitch.store(1.0f);
+				}
+				else {
+					// Project velocites onto listenerToVoice
+					float listenerVel = listener.velocity * listenerToEmitterNormalized;
+					float emitterVel = m_velocity * listenerToEmitterNormalized;
+
+					float dopplerStrenght = m_dopplerFactor * globalDopplerScale;
+					float numerator = SPEED_OF_SOUND + (listenerVel * dopplerStrenght);
+					float denominator = SPEED_OF_SOUND + (emitterVel * dopplerStrenght);
+					float dopplerPitch = numerator / std::max(denominator, 0.1f);
+					m_dopplerPitch.store(std::clamp(dopplerPitch, 0.1f, 4.0f));
+				}
+			}
+			else {
+				m_dopplerPitch.store(1.0f);
+			}
 		}
 
 		float panNormalized = (pan + 1.0f) * 0.5f;
@@ -141,48 +189,6 @@ namespace siren {
 		float gainR = std::sin(angle) * volume;
 		m_gainL.store(gainL);
 		m_gainR.store(gainR);
-
-		// Velocity
-		if (m_velocitySetThisFrame) {
-			// Velocity has been manually overridden and does not need to be calculated
-			m_velocitySetThisFrame = false;
-		}
-		else if (m_firstUpdate) {
-			// First update -> don't calculate velocity
-			m_velocity = { 0.0f, 0.0f, 0.0f };
-		}
-		else {
-			if (deltaTime > 0.00001) {
-				// Approximate voice velocity
-				Vector3 distance = m_position - m_previousPosition;
-				Vector3 rawVelocity = distance / deltaTime;
-
-				// Exponential smoothing of velocity
-				float smoothingFactor = std::clamp(deltaTime * m_velocitySmoothing, 0.0f, 1.0f);
-				m_velocity = m_velocity + (rawVelocity - m_velocity) * smoothingFactor;
-			}
-		}
-
-		m_firstUpdate = false;
-		m_previousPosition = m_position;
-
-		// Doppler pitch calculation (Relative Velocity Projection Formula)
-		Vector3 listenerToVoice = m_position - listener.position;
-		float distance = listenerToVoice.length();
-		if (distance < 0.001f) {
-			m_dopplerPitch.store(1.0f);
-		}
-		else {
-			// Project velocites onto listenerToVoice
-			listenerToVoice.normalize();
-			float listenerVel = listener.velocity * listenerToVoice;
-			float sourceVel = m_velocity * listenerToVoice;
-
-			float numerator = SPEED_OF_SOUND + (listenerVel * m_dopplerFactor);
-			float denominator = SPEED_OF_SOUND + (sourceVel * m_dopplerFactor);
-			float dopplerPitch = numerator / std::max(denominator, 0.1f);
-			m_dopplerPitch.store(std::clamp(dopplerPitch, 0.1f, 4.0f));
-		}
 	}
 
 	void Voice::play() {
@@ -222,6 +228,10 @@ namespace siren {
 
 	void Voice::setPitch(float value) {
 		m_pitch.store(std::clamp(value, 0.1f, 4.0f));
+	}
+
+	void Voice::setDopplerEffect(bool value) {
+		m_dopplerEffect = value;
 	}
 
 	void Voice::setDopplerFactor(float value) {

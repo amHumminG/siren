@@ -42,6 +42,8 @@ namespace siren {
 		float m_listenerVelocitySmoothing = 20.0f;
 		float m_defaultVoiceVelocitySmoothing = 10.0f; // Default set to all new voices
 
+		float m_globalDopplerScale = 1.0f;
+
 		/// @brief Writes audio data to the device
 		/// @param pDevice The device
 		/// @param pOutput Buffer for the audio data to be written to
@@ -98,6 +100,12 @@ namespace siren {
 		/// @brief Sets the default velocity smoothing default given to all new voices
 		/// (low value = high smoothing)
 		void setDefaultVoiceVelocitySmoothing(float value);
+
+		/// @brief Sets the global doppler scale applied to all voices
+		void setGlobalDopplerScale(float value);
+
+		/// @return The global doppler scale applied to all voices
+		float getGlobalDopplerScale() const;
 
 		/// @return All listener data currently stored in the context
 		///
