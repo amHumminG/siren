@@ -7,11 +7,13 @@ namespace siren {
 
 	enum class ResultCode {
 		Success = 0,
+		GenericError, // Try not to use this
 		OutOfBounds,
 		InvalidFile,
 		InvalidData,
 		InvalidHeader,
 		FormatNotSupported,
+		InvalidSound
 		// more to come
 	};
 

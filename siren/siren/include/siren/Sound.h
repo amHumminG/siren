@@ -1,6 +1,8 @@
 #pragma once
 #include "siren/Result.h"
+#include "siren/DataSource.h"
 #include <string>
+#include <memory>
 #include <vector>
 #include <span>
 
@@ -19,7 +21,7 @@ namespace siren {
 		bool m_valid = true;
 
 		std::string m_path; // Valid if m_type != MemoryExternal
-		std::vector<std::byte> m_internalData; // Valid if m_type == MemoryInternal
+		std::shared_ptr<std::vector<std::byte>> m_internalData; // Valid if m_type == MemoryInternal
 
 		std::span<const std::byte> m_dataView; // Valid if m_type != Stream
 
@@ -53,6 +55,8 @@ namespace siren {
 
 		Sound(Sound&&) = default;
 		Sound& operator=(Sound&&) = default;
+
+		[[nodiscard]] Result<std::unique_ptr<DataSource>> createDataSource() const;
 
 		/// @return True if sound is valid, otherwise false
 		[[nodiscard]] bool isValid() const;

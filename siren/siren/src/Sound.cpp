@@ -1,6 +1,9 @@
 #include "siren/Sound.h"
 #include "internal/log.h"
+#include "siren/io/FileDataSource.h"
+#include "siren/io/MemoryDataSource.h"
 #include <fstream>
+#include <memory>
 #include <filesystem>
 
 namespace siren {
@@ -10,6 +13,11 @@ namespace siren {
 	}
 
 	void Sound::loadFromFile(const std::string& path) {
+
+		if (!m_internalData) {
+			m_internalData = std::make_shared<std::vector<std::byte>>();
+		}
+
 		std::ifstream in(path, std::ios::binary | std::ios::ate);
 		if (!in.is_open()) {
 			SIREN_LOG_ERROR("Sound::Internal Failed to open file. PATH: " << path);
@@ -24,15 +32,16 @@ namespace siren {
 			return;
 		}
 		in.seekg(0, std::ios::beg);
-		m_internalData.resize(fileSize);
-		if (!in.read(reinterpret_cast<char*>(m_internalData.data()), fileSize)) {
+		m_internalData->resize(fileSize);
+		if (!in.read(reinterpret_cast<char*>(m_internalData->data()), fileSize)) {
 			SIREN_LOG_ERROR("Sound::Internal Failed to read file data. PATH: " << path);
 			m_valid = false;
-			m_internalData.clear();
+			m_internalData->clear();
 			return;
 		}
 
-		m_dataView = std::span(m_internalData);
+		m_dataView = std::span(m_internalData->data(), m_internalData->size());
+		m_valid = true;
 		return;
 	}
 
@@ -73,6 +82,31 @@ namespace siren {
 		}
 
 		return sound;
+	}
+
+	Result<std::unique_ptr<DataSource>> Sound::createDataSource() const {
+		if (!m_valid) {
+			return ResultCode::InvalidSound;
+		}
+
+		std::unique_ptr<DataSource> source = nullptr;
+		if (m_type == SoundType::MemoryInternal) {
+			// MemorySource shares data ownership
+			source = std::make_unique<MemoryDataSource>(m_internalData);
+		}
+		else if (m_type == SoundType::MemoryExternal) {
+			// MemorySource does not share data ownership (user controlled)
+			source = std::make_unique<MemoryDataSource>(m_dataView);
+		}
+		else if (m_type == SoundType::Stream) {
+			source = std::make_unique<FileDataSource>(m_path);
+		}
+
+		if (!source) {
+			return ResultCode::GenericError;
+		}
+
+		return source;
 	}
 
 	bool Sound::isValid() const {

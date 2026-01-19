@@ -269,7 +269,6 @@ namespace siren {
 	}
 
 	std::shared_ptr<Voice> AudioContext::play(const Sound& sound, const std::string& busName) {
-		// Create voice with a decoder
 		if (!sound.isValid()) {
 			SIREN_LOG_ERROR("AudioContext::play() Invalid sound");
 			return nullptr;
@@ -277,26 +276,25 @@ namespace siren {
 		auto voice = std::make_shared<Voice>();
 		uint32_t sampleRate = 0;
 		size_t totalFrames = 0;
-		if (sound.getType() == SoundType::Stream) {
-			Result result = DecoderFactory::createDecoder(sound.getPath());
-			if (!result.isOk()) {
-				SIREN_LOG_ERROR("AudioContext::play() Failed to create decoder. ERROR: " << int(result.error()));
-				return nullptr;
-			}
-			sampleRate = result.value()->getSampleRate();
-			totalFrames = result.value()->getTotalFrames();
-			voice->attachDecoder(std::move(result.value()));
+
+		// Create data source
+		Result sourceResult = sound.createDataSource();
+		if (!sourceResult.isOk()) {
+			SIREN_LOG_ERROR("AudioContext::play() Failed to create data source. ERROR: " << int(sourceResult.error()));
+			return nullptr;
 		}
-		else { // Sound type == MemoryInternal or MemoryExternal
-			Result result = DecoderFactory::createDecoder(sound.getData());
-			if (!result.isOk()) {
-				SIREN_LOG_ERROR("AudioContext::play() Failed to create decoder. ERROR: " << int(result.error()));
-				return nullptr;
-			}
-			sampleRate = result.value()->getSampleRate();
-			totalFrames = result.value()->getTotalFrames();
-			voice->attachDecoder(std::move(result.value()));
+
+		// Create decoder for that data source
+		Result decoderResult = DecoderFactory::createDecoder(std::move(sourceResult.value()));
+		if (!decoderResult.isOk()) {
+			SIREN_LOG_ERROR("AudioContext::play() Failed to create decoder. ERROR: " << int(decoderResult.error()));
+			return nullptr;
 		}
+
+		sampleRate = decoderResult.value()->getSampleRate();
+		totalFrames = decoderResult.value()->getTotalFrames();
+
+		voice->attachDecoder(std::move(decoderResult.value()));
 		voice->setTag(sound.getTag());
 		voice->setVelocitySmoothing(m_defaultVoiceVelocitySmoothing);
 		AudioBus* bus = getBus(busName);
