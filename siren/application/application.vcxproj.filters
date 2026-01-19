@@ -47,5 +47,8 @@
     <ClInclude Include="src\SoundscapeScenario.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\PitchScenario.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

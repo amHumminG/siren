@@ -11,6 +11,7 @@
 #include "Scenario.h"
 #include "OrbitScenario.h"
 #include "SoundscapeScenario.h"
+#include "PitchScenario.h"
 
 // Misc
 #include <iostream>
@@ -97,6 +98,7 @@ int main() {
 	// Add scenarios
 	scenarios.push_back(std::make_unique<OrbitScenario>());
 	scenarios.push_back(std::make_unique<SoundscapeScenario>());
+	scenarios.push_back(std::make_unique<PitchScenario>());
 
 	Scenario* selectedScenario = nullptr;
 
