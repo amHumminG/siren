@@ -45,24 +45,55 @@ namespace siren {
 		}
 		std::span<float> dst = m_bus->m_buffer;
 
-		float pitch = m_pitch.load() * m_dopplerPitch.load();
-
 		constexpr size_t BUFFER_FRAMES = 256;
 		// TODO: This 2 represents the maximum number of channels and should be a constant like MAX_CHANNELS
 		std::array<float, BUFFER_FRAMES * 2> intermediateBuffer;
 
-		// TODO: This 2 represents output channels and should probably be aquired from the output bus
-		size_t framesRequested = dst.size() / 2;
-		size_t framesRead = 0;
-
 		size_t decoderChannels = m_decoder->getChannelCount();
+		float pitch = m_pitch.load() * m_dopplerPitch.load();
 		bool isLooping = m_isLooping.load();
 		float gainL = m_gainL.load();
 		float gainR = m_gainR.load();
 
+		bool continuePlayback = true; // Lambda sets this to false if EOF is hit and voice is not looping or on error
+
 		auto dataProvider = [&](std::span<float> buffer) -> size_t {
-			return m_decoder->decode(buffer);
-			};
+			size_t totalSamplesRead = 0;
+			size_t totalSamplesRequested = buffer.size();
+			size_t totalFramesRead = 0;
+			size_t channels = decoderChannels;
+			
+			while (totalSamplesRead < totalSamplesRequested) {
+				std::span<float> subBuffer = buffer.subspan(totalSamplesRead);
+				if (subBuffer.size() < channels) {
+					break; // Alignment guard (for invalid audio data)
+				}
+				size_t framesJustRead = m_decoder->decode(subBuffer);
+				size_t samplesJustRead = framesJustRead * channels;
+
+				totalSamplesRead += samplesJustRead;
+				totalFramesRead += framesJustRead;
+
+				if (framesJustRead == 0) {
+					if (isLooping) {
+						if (m_decoder->seek(0) != ResultCode::Success) {
+							continuePlayback = false;
+							break;
+						}
+					}
+					else {
+						continuePlayback = false;
+						break;
+					}
+				}
+			}
+
+			return totalFramesRead;
+		};
+
+		// TODO: This 2 represents output channels and should probably be aquired from the output bus
+		size_t framesRequested = dst.size() / 2;
+		size_t framesRead = 0;
 
 		while (framesRead < framesRequested) {
 
@@ -70,19 +101,6 @@ namespace siren {
 			std::span<float> resamplerOutput(intermediateBuffer.data(), framesToDecode * decoderChannels);
 
 			size_t framesDecoded = m_resampler.getSamples(resamplerOutput, pitch, dataProvider);
-
-			if (framesDecoded < framesToDecode) {
-				// Hit EOF
-				if (isLooping) {
-					// Start from beginning
-					if (m_decoder->seek(0) != ResultCode::Success) {
-						return false;
-					}
-				}
-				else {
-					m_state.store(VoiceState::Inactive); // Audio clip over
-				}
-			}
 
 			// Mix and add to destination buffer
 			for (size_t i = 0; i < framesDecoded; i++) {
@@ -112,6 +130,12 @@ namespace siren {
 			if (m_state.load() != VoiceState::Playing) {
 				break;
 			}
+
+			if (!continuePlayback && framesDecoded < framesToDecode) {
+				m_state.store(VoiceState::Inactive);
+				break;
+			}
+
 		}
 		return m_state.load() != VoiceState::Inactive;
 	}

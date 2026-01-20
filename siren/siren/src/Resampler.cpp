@@ -20,6 +20,7 @@ namespace siren {
 
 	size_t Resampler::getSamples(std::span<float> dst, float pitch, 
 		std::function<size_t(std::span<float>)> dataProvider) noexcept {
+
 		if (m_channels == 0) {
 			return 0;
 		}
@@ -28,7 +29,7 @@ namespace siren {
 
 		size_t dstFramesRequested = dst.size() / m_channels;
 		if (dstFramesRequested > MAX_BLOCK_SIZE) {
-			// Maybe use an assert here
+			// TODO: Use an assert here
 			return 0;
 		}
 
