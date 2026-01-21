@@ -24,7 +24,8 @@ public:
 	}
 
 	void onStart(siren::AudioContext& context) override {
-		siren::Sound sound = siren::Sound::Internal("assets/audio/sfx/swedish_police_siren.wav");
+		//siren::Sound sound = siren::Sound::Internal("assets/audio/music/blood_run_warm.wav");
+		siren::Sound sound = siren::Sound::Internal("assets/audio/sfx/400hz.wav");
 		m_voice = context.play(sound, "SFX");
 
 		if (m_voice) {
