@@ -1,11 +1,10 @@
 #include "siren/AudioContext.h"
 #include "internal/log.h"
 #include "siren/DecoderFactory.h"
+#include <algorithm>
 
 #define MINIAUDIO_IMPLEMENTATION
 #include "../external/miniaudio/miniaudio.h"
-
-#include <algorithm>
 
 
 namespace siren {
@@ -40,7 +39,7 @@ namespace siren {
 		for (auto it = voices.begin(); it != voices.end(); ) {
 			auto& voice = *it;
 
-			bool alive = voice->mix();
+			bool alive = voice->mix(); // Mix voice into bus buffer
 			if (!alive) {
 				it = voices.erase(it); // TODO: Queue deletion to be done in update()
 			}
@@ -57,16 +56,17 @@ namespace siren {
 
 		for (auto& [name, bus] : context->m_busRegistry) {
 			if (bus.get() != masterBus) {
-				float busVolume = bus->m_volume;
-				for (size_t i = 0; i < bus->m_buffer.size(); i++) {
-					masterBus->m_buffer[i] += bus->m_buffer[i] * busVolume;
+				bus->process();
+				size_t limit = (std::min)(bus->m_buffer.size(), masterBus->m_buffer.size());
+				for (size_t i = 0; i < limit; i++) {
+					masterBus->m_buffer[i] += bus->m_buffer[i];
 				}
 			}
 		}
 
-		float masterVolume = masterBus->m_volume;
+		masterBus->process();
 		for (size_t i = 0; i < requestedSamples; i++) {
-			outBuffer[i] = std::clamp(masterBus->m_buffer[i] * masterVolume, -1.0f, 1.0f);
+			outBuffer[i] = std::clamp(masterBus->m_buffer[i], -1.0f, 1.0f);
 		}
 	}
 

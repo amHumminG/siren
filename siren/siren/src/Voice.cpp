@@ -52,8 +52,8 @@ namespace siren {
 		size_t decoderChannels = m_decoder->getChannelCount();
 		float pitch = m_pitch.load() * m_dopplerPitch.load();
 		bool isLooping = m_isLooping.load();
-		float gainL = m_gainL.load();
-		float gainR = m_gainR.load();
+		float targetGainL = m_targetGainL.load();
+		float targetGainR = m_targetGainR.load();
 
 		bool continuePlayback = true; // Lambda sets this to false if EOF is hit and voice is not looping or on error
 
@@ -95,6 +95,8 @@ namespace siren {
 		size_t framesRequested = dst.size() / 2;
 		size_t framesRead = 0;
 
+		const float SLEW_RATE = 0.00005f;
+
 		while (framesRead < framesRequested) {
 
 			size_t framesToDecode = std::min(framesRequested - framesRead, BUFFER_FRAMES);
@@ -118,12 +120,25 @@ namespace siren {
 					sampleR = intermediateBuffer[i * 2 + 1];
 				}
 
-				sampleL *= gainL;
-				sampleR *= gainR;
+				float diffL = targetGainL - m_currentGainL;
+				if (std::abs(diffL) < SLEW_RATE) {
+					m_currentGainL = targetGainL;
+				}
+				else {
+					m_currentGainL += (diffL > 0) ? SLEW_RATE : -SLEW_RATE;
+				}
+
+				float diffR = targetGainR - m_currentGainR;
+				if (std::abs(diffR) < SLEW_RATE) {
+					m_currentGainR = targetGainR;
+				}
+				else {
+					m_currentGainR += (diffR > 0) ? SLEW_RATE : -SLEW_RATE;
+				}
 
 				size_t dstIndex = (framesRead + i) * 2;
-				dst[dstIndex]		+= sampleL;
-				dst[dstIndex + 1]	+= sampleR;
+				dst[dstIndex]		+= sampleL * m_currentGainL;
+				dst[dstIndex + 1]	+= sampleR * m_currentGainR;
 			}
 
 			framesRead += framesDecoded;
@@ -137,6 +152,7 @@ namespace siren {
 			}
 
 		}
+
 		return m_state.load() != VoiceState::Inactive;
 	}
 
@@ -211,13 +227,14 @@ namespace siren {
 		// Apply pan and volume
 		float gainL = std::cos(angle) * volume;
 		float gainR = std::sin(angle) * volume;
-		m_gainL.store(gainL);
-		m_gainR.store(gainR);
+		m_targetGainL.store(gainL);
+		m_targetGainR.store(gainR);
 	}
 
 	void Voice::play() {
 		if (m_decoder) {
 			if (m_state.load() == VoiceState::Inactive) {
+				// TODO: Investigate if it should even be a possiblity to play an inactive voice
 				ResultCode result = m_decoder->seek(0);
 				if (result != ResultCode::Success) {
 					std::string error = std::to_string((int)result);
@@ -227,6 +244,7 @@ namespace siren {
 			}
 			m_resampler.init(m_decoder->getChannelCount());
 			m_state.store(VoiceState::Playing);
+			snapToTargetGain();
 		}
 	}
 
