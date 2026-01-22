@@ -4,7 +4,9 @@
 
 class PitchScenario : public Scenario {
 private:
-	std::shared_ptr<siren::Voice> m_voice = nullptr;
+	std::shared_ptr<siren::Voice> m_activeVoice = nullptr;
+	std::shared_ptr<siren::Voice> m_voice1 = nullptr;
+	std::shared_ptr<siren::Voice> m_voice2 = nullptr;
 	bool m_constantTone = true;
 	Vector3 m_pos = { 0.0f, 5.0f, 10.0f };
 	float m_speed = 25.0f;
@@ -26,34 +28,50 @@ public:
 
 	void onStart(siren::AudioContext& context) override {
 		// Default sound
-		siren::Sound sound = siren::Sound::Internal("assets/audio/sfx/400hz.wav");
-		m_voice = context.play(sound, "SFX");
+		siren::Sound sound1 = siren::Sound::Internal("assets/audio/sfx/400hz.wav");
+		m_voice1 = context.createVoice(sound1, "SFX");
+		siren::Sound sound2 = siren::Sound::Internal("assets/audio/music/blood_run_warm.wav");
+		m_voice2 = context.createVoice(sound2, "SFX");
 
-		if (m_voice) {
-			m_voice->setLooping(true);
-			m_voice->setVolume(0.5f);
-			m_voice->setDistance(m_minDist, m_maxDist);
+		if (m_voice1) {
+			m_voice1->setLooping(true);
+			m_voice1->setVolume(0.5f);
+			m_voice1->setDistance(m_minDist, m_maxDist);
 		}
+		if (m_voice2) {
+			m_voice2->setLooping(true);
+			m_voice2->setVolume(0.5f);
+			m_voice2->setDistance(m_minDist, m_maxDist);
+		}
+
+		m_activeVoice = m_voice1;
+		m_activeVoice->play();
 	}
 
 	void onStop(siren::AudioContext& context) override {
-		if (m_voice) {
-			m_voice->stop();
-			m_voice = nullptr;
+		if (m_voice1) {
+			m_voice1->destroy();
+			m_voice1 = nullptr;
 		}
+		if (m_voice2) {
+			m_voice2->destroy();
+			m_voice2 = nullptr;
+		}
+		m_activeVoice = nullptr;
 	}
 
 	void update(float deltaTime, siren::AudioContext& context) override {
 		static bool lastWasTone = true;
+		static bool voice1Playing = true;
 		if (lastWasTone && !m_constantTone) {
-			m_voice->stop();
-			siren::Sound sound = siren::Sound::Internal("assets/audio/music/blood_run_warm.wav");
-			m_voice = context.play(sound, "SFX");
+			m_activeVoice->stop();
+			m_activeVoice = m_voice2;
+			m_activeVoice->play();
 		}
 		else if (!lastWasTone && m_constantTone) {
-			m_voice->stop();
-			siren::Sound sound = siren::Sound::Internal("assets/audio/sfx/400hz.wav");
-			m_voice = context.play(sound, "SFX");
+			m_activeVoice->stop();
+			m_activeVoice = m_voice1;
+			m_activeVoice->play();
 		}
 
 		if (m_isMoving) {
@@ -67,13 +85,12 @@ public:
 				m_pos.x = -m_range;
 				m_direction = -m_direction;
 			}
-			m_voice->setPosition({ m_pos.x, m_pos.y, m_pos.y });
+			m_activeVoice->setPosition({ m_pos.x, m_pos.y, m_pos.y });
 		}
-		m_voice->setDistance(m_minDist, m_maxDist);
-
-		m_voice->setPitch(m_pitch);
-		m_voice->setDopplerEffect(m_useDoppler);
-		if (m_useDoppler) m_voice->setDopplerFactor(m_dopplerFactor);
+		m_activeVoice->setDistance(m_minDist, m_maxDist);
+		m_activeVoice->setPitch(m_pitch);
+		m_activeVoice->setDopplerEffect(m_useDoppler);
+		if (m_useDoppler) m_activeVoice->setDopplerFactor(m_dopplerFactor);
 
 		lastWasTone = m_constantTone;
 	}
@@ -90,8 +107,8 @@ public:
 	}
 
 	void drawUI() override {
-		if (!m_voice) {
-			ImGui::TextColored(ImVec4(1, 0, 0, 1), "ERROR: Voice not playing");
+		if (!m_voice1 || !m_voice2) {
+			ImGui::TextColored(ImVec4(1, 0, 0, 1), "ERROR: Invalid voices");
 			return;
 		}
 
@@ -105,7 +122,7 @@ public:
 
 		ImGui::Text("Status:");
 		ImGui::SameLine();
-		if (m_voice->isPlaying()) {
+		if (m_activeVoice->isPlaying()) {
 			ImGui::TextColored(ImVec4(0, 1, 0, 1), "Playing");
 		}
 		else {
@@ -135,7 +152,7 @@ public:
 			ImGui::SliderFloat("##Doppler Factor", &m_dopplerFactor, 0.1f, 4.0f);
 		}
 
-		siren::Vector3 voiceVelocity = m_voice.get()->getVelocity();
+		siren::Vector3 voiceVelocity = m_activeVoice.get()->getVelocity();
 		ImGui::BeginDisabled();
 		float vel[3] = { voiceVelocity.x, voiceVelocity.y, voiceVelocity.z };
 		ImGui::InputFloat3("Velocity", vel, "%.2f", ImGuiInputTextFlags_ReadOnly);

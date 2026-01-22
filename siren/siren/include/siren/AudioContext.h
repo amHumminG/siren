@@ -132,6 +132,6 @@ namespace siren {
 		/// @param busName The bus that the sound should be played to. If none is provided,
 		/// it will default to Master
 		/// @return A shared pointer to the voice that has been created to play the sound
-		std::shared_ptr<Voice> play(const Sound& sound, const std::string& busName="Master");
+		std::shared_ptr<Voice> createVoice(const Sound& sound, const std::string& busName="Master");
 	};
 }

@@ -8,7 +8,8 @@
 enum class VoiceState {
 	Inactive,
 	Playing,
-	Paused
+	Paused,
+	Dead
 };
 
 enum class VoiceMode {
@@ -31,6 +32,7 @@ namespace siren {
 		VoiceMode m_mode = VoiceMode::Global;
 		float m_volume = 1.0f;	// clamped between 0.0f and 1.0f
 		float m_pan = 0.0f;		// clamped between -1.0f and 1.0f
+		std::atomic<bool> m_destroyOnFinish{ false };
 		std::atomic<float> m_isLooping{ false };
 		std::atomic<float> m_pitch{ 1.0f };
 		std::atomic<float> m_dopplerPitch{ 1.0f };
@@ -72,6 +74,12 @@ namespace siren {
 		/// @param decoder The decoder of an audio source
 		void attachDecoder(std::unique_ptr<Decoder> decoder);
 
+		/// @brief Initializes the voice state and prepares the DSP pipeline for play
+		/// 
+		/// Can be used as a hard reset for the Voice object and ensures a clean state before playback
+		/// @return true if voice was sucessfully prepared, otherwise false
+		bool prepare();
+
 		/// @brief Mixes the buffer of its audio bus with decoded audio data if
 		/// state is Playing
 		/// 
@@ -90,11 +98,19 @@ namespace siren {
 		/// If voice state is Inactive, it will play from the beginning
 		void play();
 
+		/// @brief Sets voice state to playing
+		///
+		/// Always plays sound from the beginning
+		void playOneShot();
+
 		/// @brief Sets voice state to Paused
 		void pause();
 
 		/// @brief Sets voice state to Inactive
 		void stop();
+
+		/// @brief Sets voice state to dead (Which will remove it from the context)
+		void destroy();
 
 		/// @param bus The bus that the voice will write to
 		void setBus(AudioBus* bus);

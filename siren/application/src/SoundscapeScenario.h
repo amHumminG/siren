@@ -38,10 +38,11 @@ public:
 
 		// Play soundtrack
 		siren::Sound sound = siren::Sound::Stream("assets/audio/music/lurks_below_theme.wav");
-		m_soundtrackVoice = context.play(sound, "Music");
+		m_soundtrackVoice = context.createVoice(sound, "Music");
 		if (m_soundtrackVoice) {
 			m_soundtrackVoice->setLooping(true);
 			m_soundtrackPlaying = true;
+			m_soundtrackVoice->play();
 		}
 
 		// Create sounds for sfx
@@ -96,7 +97,8 @@ public:
 				size_t index = indexDistribution(m_gen);
 				
 				SoundEffect effect;
-				effect.voice = context.play(*m_sfxSounds.at(index).get(), "SFX");
+				effect.voice = context.createVoice(*m_sfxSounds.at(index).get(), "SFX");
+				effect.voice->playOneShot();
 				effect.position = Vector3(
 					spawnDistribution(m_gen),
 					spawnDistribution(m_gen),

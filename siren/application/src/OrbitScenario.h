@@ -25,11 +25,12 @@ public:
 
 	void onStart(siren::AudioContext& context) override {
 		siren::Sound sound = siren::Sound::Stream("assets/audio/music/white_ferrari.wav");
-		m_voice = context.play(sound, "Music");
+		m_voice = context.createVoice(sound, "Music");
 
 		if (m_voice) {
 			m_voice->setLooping(true);
 			m_voice->setDistance(m_minDist, m_maxDist);
+			m_voice->play();
 		}
 	}
 

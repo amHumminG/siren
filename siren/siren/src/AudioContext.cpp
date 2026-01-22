@@ -268,49 +268,53 @@ namespace siren {
 		return bus->m_volume;
 	}
 
-	std::shared_ptr<Voice> AudioContext::play(const Sound& sound, const std::string& busName) {
+	std::shared_ptr<Voice> AudioContext::createVoice(const Sound& sound, const std::string& busName) {
 		if (!sound.isValid()) {
-			SIREN_LOG_ERROR("AudioContext::play() Invalid sound");
+			SIREN_LOG_ERROR("AudioContext::createVoice() Invalid sound");
 			return nullptr;
 		}
-		auto voice = std::make_shared<Voice>();
-		uint32_t sampleRate = 0;
-		size_t totalFrames = 0;
 
 		// Create data source
 		Result sourceResult = sound.createDataSource();
 		if (!sourceResult.isOk()) {
-			SIREN_LOG_ERROR("AudioContext::play() Failed to create data source. ERROR: " << int(sourceResult.error()));
+			SIREN_LOG_ERROR("AudioContext::createVoice() Failed to create data source. ERROR: " << int(sourceResult.error()));
 			return nullptr;
 		}
 
 		// Create decoder for that data source
 		Result decoderResult = DecoderFactory::createDecoder(std::move(sourceResult.value()));
 		if (!decoderResult.isOk()) {
-			SIREN_LOG_ERROR("AudioContext::play() Failed to create decoder. ERROR: " << int(decoderResult.error()));
+			SIREN_LOG_ERROR("AudioContext::createVoice() Failed to create decoder. ERROR: " << int(decoderResult.error()));
 			return nullptr;
 		}
 
-		sampleRate = decoderResult.value()->getSampleRate();
-		totalFrames = decoderResult.value()->getTotalFrames();
+		auto voice = std::make_shared<Voice>();
+
+		uint32_t sampleRate = decoderResult.value()->getSampleRate();
+		size_t totalFrames = decoderResult.value()->getTotalFrames();
 
 		voice->attachDecoder(std::move(decoderResult.value()));
 		voice->setTag(sound.getTag());
 		voice->setVelocitySmoothing(m_defaultVoiceVelocitySmoothing);
+		if (!voice->prepare()) {
+			SIREN_LOG_ERROR("AudioContext::createVoice() Failed to prepare voice");
+			return nullptr;
+		}
+
 		AudioBus* bus = getBus(busName);
 		if (bus == nullptr) {
-			SIREN_LOG_WARNING("AudioContext::Play() No bus with name: " << busName << " exists. Defaulting to Master");
+			SIREN_LOG_WARNING("AudioContext::createVoice() No bus with name: " << busName << " exists. Defaulting to Master");
 			bus = getBus("Master");
 		}
 		if (bus == nullptr) { // Default to master bus if bus was not found
-			SIREN_LOG_ERROR("AudioContext::Play() Master bus does not exist");
+			SIREN_LOG_ERROR("AudioContext::createVoice() Master bus does not exist");
 			return nullptr;
 		}
 		voice->setBus(bus);
-		voice->play();
 
+		// DEBUG
 		size_t seconds = totalFrames / sampleRate;
-		SIREN_LOG_INFO("Playing sound [" << voice->getTag() << ", " << seconds / 60 << "m " << seconds % 60 << "s]");
+		SIREN_LOG_INFO("Created sound [" << voice->getTag() << ", " << seconds / 60 << "m " << seconds % 60 << "s]");
 
 		auto newNode = std::make_unique<PendingVoiceNode>();
 		newNode->voice = voice;

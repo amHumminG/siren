@@ -16,20 +16,46 @@ constexpr float SPEED_OF_SOUND = 343.0f; // m/s
 namespace siren {
 
 	void Voice::attachDecoder(std::unique_ptr<Decoder> decoder) {
-		m_state.store(VoiceState::Inactive);
-		m_isLooping.store(false);
 		m_sampleRate = decoder->getSampleRate();
 		m_decoder = std::move(decoder);
 	}
 
+	bool Voice::prepare() {
+		if (!m_decoder) {
+			SIREN_LOG_ERROR("Voice::prepare() Called without a decoder attatched")
+			return false;
+		}
+
+		m_resampler.init(m_decoder->getChannelCount());
+		
+		if (m_decoder->seek(0) != ResultCode::Success) {
+			SIREN_LOG_ERROR("Voice::prepare() Failed to seek to beginning");
+			return false;
+		}
+
+		m_destroyOnFinish.store(false);
+		m_isLooping.store(false);
+
+		m_pitch.store(1.0f);
+		m_dopplerPitch.store(1.0f);
+
+		m_targetGainL.store(1.0f);
+		m_targetGainR.store(1.0f);
+		snapToTargetGain();
+
+		m_state.store(VoiceState::Inactive);
+
+		return true;
+	}
+
 	bool Voice::mix() noexcept {
 		VoiceState state = m_state.load();
-		if (state == VoiceState::Inactive || !m_decoder) {
+		if (state == VoiceState::Dead || !m_decoder) {
 			return false; // Dead
 		}
 
-		if (state == VoiceState::Paused) {
-			return true; // Still alive
+		if (state == VoiceState::Inactive || state == VoiceState::Paused) {
+			return true; // Still alive but not mixed
 		}
 
 		// Handle seek requests
@@ -147,13 +173,18 @@ namespace siren {
 			}
 
 			if (!continuePlayback && framesDecoded < framesToDecode) {
-				m_state.store(VoiceState::Inactive);
+				if (m_destroyOnFinish.load()) {
+					m_state.store(VoiceState::Dead);
+				}
+				else {
+					m_state.store(VoiceState::Inactive);
+				}
 				break;
 			}
 
 		}
 
-		return m_state.load() != VoiceState::Inactive;
+		return m_state.load() != VoiceState::Dead;
 	}
 
 	void Voice::update(float deltaTime, const ListenerData& listener, float globalDopplerScale) {
@@ -233,16 +264,30 @@ namespace siren {
 
 	void Voice::play() {
 		if (m_decoder) {
-			if (m_state.load() == VoiceState::Inactive) {
-				// TODO: Investigate if it should even be a possiblity to play an inactive voice
-				ResultCode result = m_decoder->seek(0);
-				if (result != ResultCode::Success) {
-					std::string error = std::to_string((int)result);
-					SIREN_LOG_ERROR("Voice::play() Failed to seek. ERROR: " << (int)result);
-					return;
-				}
+			if (m_state.load() == VoiceState::Dead) {
+				SIREN_LOG_ERROR("Voice::play() Unable to play dead voice");
+				return;
 			}
-			m_resampler.init(m_decoder->getChannelCount());
+
+			m_destroyOnFinish.store(false);
+
+			m_state.store(VoiceState::Playing);
+			snapToTargetGain();
+		}
+	}
+
+	void Voice::playOneShot() {
+		if (m_decoder) {
+			if (m_state.load() == VoiceState::Dead) {
+				SIREN_LOG_ERROR("Voice::play() Unable to play dead voice");
+				return;
+			}
+
+			m_destroyOnFinish.store(true);
+			m_isLooping.store(false);
+			
+			m_decoder->seek(0);
+
 			m_state.store(VoiceState::Playing);
 			snapToTargetGain();
 		}
@@ -253,7 +298,17 @@ namespace siren {
 	}
 
 	void Voice::stop() {
-		m_state.store(VoiceState::Inactive);
+		if (m_destroyOnFinish.load() == true) {
+			m_state.store(VoiceState::Dead);
+		}
+		else {
+			m_state.store(VoiceState::Inactive);
+			if (m_decoder) m_decoder->seek(0);
+		}
+	}
+
+	void Voice::destroy() {
+		m_state.store(VoiceState::Dead);
 	}
 
 	void Voice::setBus(AudioBus* bus) {
@@ -295,7 +350,7 @@ namespace siren {
 	void Voice::seek(float timePoint) {
 		// TODO: Check if timePoint is out of bounds
 		// This will require that we store totalFrames in voice as a memeber variable
-		if (m_state.load() == VoiceState::Inactive) {
+		if (m_state.load() == VoiceState::Dead) {
 			return;
 		}
 		int64_t frame = static_cast<int64_t>(timePoint * m_sampleRate);
