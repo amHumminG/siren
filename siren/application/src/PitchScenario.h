@@ -5,6 +5,7 @@
 class PitchScenario : public Scenario {
 private:
 	std::shared_ptr<siren::Voice> m_voice = nullptr;
+	bool m_constantTone = true;
 	Vector3 m_pos = { 0.0f, 5.0f, 10.0f };
 	float m_speed = 25.0f;
 	float m_range = 100.0f;
@@ -24,7 +25,7 @@ public:
 	}
 
 	void onStart(siren::AudioContext& context) override {
-		//siren::Sound sound = siren::Sound::Internal("assets/audio/music/blood_run_warm.wav");
+		// Default sound
 		siren::Sound sound = siren::Sound::Internal("assets/audio/sfx/400hz.wav");
 		m_voice = context.play(sound, "SFX");
 
@@ -43,6 +44,18 @@ public:
 	}
 
 	void update(float deltaTime, siren::AudioContext& context) override {
+		static bool lastWasTone = true;
+		if (lastWasTone && !m_constantTone) {
+			m_voice->stop();
+			siren::Sound sound = siren::Sound::Internal("assets/audio/music/blood_run_warm.wav");
+			m_voice = context.play(sound, "SFX");
+		}
+		else if (!lastWasTone && m_constantTone) {
+			m_voice->stop();
+			siren::Sound sound = siren::Sound::Internal("assets/audio/sfx/400hz.wav");
+			m_voice = context.play(sound, "SFX");
+		}
+
 		if (m_isMoving) {
 			m_pos.x += (m_speed * m_direction) * deltaTime;
 
@@ -61,6 +74,8 @@ public:
 		m_voice->setPitch(m_pitch);
 		m_voice->setDopplerEffect(m_useDoppler);
 		if (m_useDoppler) m_voice->setDopplerFactor(m_dopplerFactor);
+
+		lastWasTone = m_constantTone;
 	}
 
 	void draw3D() override{
@@ -78,6 +93,14 @@ public:
 		if (!m_voice) {
 			ImGui::TextColored(ImVec4(1, 0, 0, 1), "ERROR: Voice not playing");
 			return;
+		}
+
+		ImGui::SeparatorText("Audio Clips");
+		if (ImGui::Button("400hz Tone")) {
+			m_constantTone = true;
+		}
+		if (ImGui::Button("Song")) {
+			m_constantTone = false;
 		}
 
 		ImGui::Text("Status:");
