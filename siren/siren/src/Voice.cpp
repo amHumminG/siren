@@ -121,7 +121,7 @@ namespace siren {
 		size_t framesRequested = dst.size() / 2;
 		size_t framesRead = 0;
 
-		const float SLEW_RATE = 0.00005f;
+		const float SLEW_RATE = 0.0002f;
 
 		while (framesRead < framesRequested) {
 
@@ -181,7 +181,6 @@ namespace siren {
 				}
 				break;
 			}
-
 		}
 
 		return m_state.load() != VoiceState::Dead;

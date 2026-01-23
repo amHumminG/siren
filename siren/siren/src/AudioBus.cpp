@@ -24,7 +24,7 @@ namespace siren {
 
 	void AudioBus::process() {
 		float targetGain = m_volume.load();
-		const float SLEW_RATE = 0.00005f;
+		const float SLEW_RATE = 0.0002f;
 
 		for (size_t i = 0; i < m_buffer.size(); i += 2) {
 			float diff = targetGain - m_currentGain;
