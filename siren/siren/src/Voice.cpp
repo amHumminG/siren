@@ -49,141 +49,165 @@ namespace siren {
 	}
 
 	bool Voice::mix() noexcept {
-		VoiceState state = m_state.load();
-		if (state == VoiceState::Dead || !m_decoder) {
+		if (m_state.load(std::memory_order_relaxed) == VoiceState::Dead) {
 			return false; // Dead
 		}
 
-		if (state == VoiceState::Inactive || state == VoiceState::Paused) {
-			return true; // Still alive but not mixed
-		}
-
-		// Handle seek requests
-		int64_t seekRequest = m_seekFrame.exchange(-1);
-		if (seekRequest >= 0 && m_decoder) {
-			if (m_decoder->seek(static_cast<size_t>(seekRequest)) == ResultCode::Success) {
-				m_resampler.flush();
-			}
-		}
-
-		if (!m_bus) {
+		// Flag the main thread that voice is mixing and voice can not be destroyed until done
+		m_isMixing.store(true, std::memory_order_seq_cst);
+		if (m_state.load(std::memory_order_seq_cst) == VoiceState::Dead) {
+			m_isMixing.store(false, std::memory_order_acquire);
 			return false;
 		}
-		std::span<float> dst = m_bus->m_buffer;
 
-		constexpr size_t BUFFER_FRAMES = 256;
-		// TODO: This 2 represents the maximum number of channels and should be a constant like MAX_CHANNELS
-		std::array<float, BUFFER_FRAMES * 2> intermediateBuffer;
+		// -- PROTECTED BLOCK START --
+		bool stillAlive = true;
+		{
+			VoiceState state = m_state.load(std::memory_order_relaxed);
 
-		size_t decoderChannels = m_decoder->getChannelCount();
-		float pitch = m_pitch.load() * m_dopplerPitch.load();
-		bool isLooping = m_isLooping.load();
-		float targetGainL = m_targetGainL.load();
-		float targetGainR = m_targetGainR.load();
+			if (state == VoiceState::Inactive || state == VoiceState::Paused) {
+				m_isMixing.store(false, std::memory_order_release);
+				return true; // Still alive but not mixed
+			}
 
-		bool continuePlayback = true; // Lambda sets this to false if EOF is hit and voice is not looping or on error
+			AudioBus* bus = m_bus.load(std::memory_order_acquire);
+			if (!m_decoder || !bus) {
+				m_isMixing.store(false, std::memory_order_release);
+				return false; // Dead
+			}
 
-		auto dataProvider = [&](std::span<float> buffer) -> size_t {
-			size_t totalSamplesRead = 0;
-			size_t totalSamplesRequested = buffer.size();
-			size_t totalFramesRead = 0;
-			size_t channels = decoderChannels;
-			
-			while (totalSamplesRead < totalSamplesRequested) {
-				std::span<float> subBuffer = buffer.subspan(totalSamplesRead);
-				if (subBuffer.size() < channels) {
-					break; // Alignment guard (for invalid audio data)
+			// Handle seek requests
+			int64_t seekRequest = m_seekFrame.exchange(-1);
+			if (seekRequest >= 0 && m_decoder) {
+				if (m_decoder->seek(static_cast<size_t>(seekRequest)) == ResultCode::Success) {
+					m_resampler.flush();
 				}
-				size_t framesJustRead = m_decoder->decode(subBuffer);
-				size_t samplesJustRead = framesJustRead * channels;
+			}
 
-				totalSamplesRead += samplesJustRead;
-				totalFramesRead += framesJustRead;
+			std::span<float> dst = bus->m_buffer;
+			constexpr size_t BUFFER_FRAMES = 256;
+			// TODO: This 2 represents the maximum number of channels and should be a constant like MAX_CHANNELS
+			std::array<float, BUFFER_FRAMES * 2> intermediateBuffer;
 
-				if (framesJustRead == 0) {
-					if (isLooping) {
-						if (m_decoder->seek(0) != ResultCode::Success) {
+
+			size_t decoderChannels = m_decoder->getChannelCount();
+			float pitch = m_pitch.load(std::memory_order_relaxed) * m_dopplerPitch.load(std::memory_order_relaxed);
+			bool isLooping = m_isLooping.load(std::memory_order_relaxed);
+			float targetGainL = m_targetGainL.load(std::memory_order_relaxed);
+			float targetGainR = m_targetGainR.load(std::memory_order_relaxed);
+
+			bool continuePlayback = true; // Lambda sets this to false if EOF is hit and voice is not looping or on error
+
+			auto dataProvider = [&](std::span<float> buffer) -> size_t {
+				size_t totalSamplesRead = 0;
+				size_t totalSamplesRequested = buffer.size();
+				size_t totalFramesRead = 0;
+				size_t channels = decoderChannels;
+
+				while (totalSamplesRead < totalSamplesRequested) {
+					std::span<float> subBuffer = buffer.subspan(totalSamplesRead);
+					if (subBuffer.size() < channels) {
+						break; // Alignment guard (for invalid audio data)
+					}
+					size_t framesJustRead = m_decoder->decode(subBuffer);
+					size_t samplesJustRead = framesJustRead * channels;
+
+					totalSamplesRead += samplesJustRead;
+					totalFramesRead += framesJustRead;
+
+					if (framesJustRead == 0) {
+						if (isLooping) {
+							if (m_decoder->seek(0) != ResultCode::Success) {
+								continuePlayback = false;
+								break;
+							}
+						}
+						else {
 							continuePlayback = false;
 							break;
 						}
 					}
-					else {
-						continuePlayback = false;
-						break;
+				}
+
+				return totalFramesRead;
+			};
+
+			// TODO: This 2 represents output channels and should probably be aquired from the output bus
+			size_t framesRequested = dst.size() / 2;
+			size_t framesRead = 0;
+
+			const float SLEW_RATE = 0.0002f;
+
+			while (framesRead < framesRequested) {
+
+				size_t framesToDecode = std::min(framesRequested - framesRead, BUFFER_FRAMES);
+				std::span<float> resamplerOutput(intermediateBuffer.data(), framesToDecode * decoderChannels);
+
+				size_t framesDecoded = m_resampler.getSamples(resamplerOutput, pitch, dataProvider);
+
+				// Mix and add to destination buffer
+				for (size_t i = 0; i < framesDecoded; i++) {
+					float sampleL;
+					float sampleR;
+
+					if (decoderChannels == 1) {
+						// Mono
+						sampleL = intermediateBuffer[i];
+						sampleR = intermediateBuffer[i];
 					}
+					else {
+						// Stereo
+						sampleL = intermediateBuffer[i * 2];
+						sampleR = intermediateBuffer[i * 2 + 1];
+					}
+
+					float diffL = targetGainL - m_currentGainL;
+					if (std::abs(diffL) < SLEW_RATE) {
+						m_currentGainL = targetGainL;
+					}
+					else {
+						m_currentGainL += (diffL > 0) ? SLEW_RATE : -SLEW_RATE;
+					}
+
+					float diffR = targetGainR - m_currentGainR;
+					if (std::abs(diffR) < SLEW_RATE) {
+						m_currentGainR = targetGainR;
+					}
+					else {
+						m_currentGainR += (diffR > 0) ? SLEW_RATE : -SLEW_RATE;
+					}
+
+					size_t dstIndex = (framesRead + i) * 2;
+					dst[dstIndex] += sampleL * m_currentGainL;
+					dst[dstIndex + 1] += sampleR * m_currentGainR;
+				}
+
+				framesRead += framesDecoded;
+
+				if (m_state.load(std::memory_order_relaxed) != VoiceState::Playing) {
+					break;
+				}
+
+				if (!continuePlayback && framesDecoded < framesToDecode) {
+					if (m_destroyOnFinish.load(std::memory_order_relaxed)) {
+						m_state.store(VoiceState::Dead, std::memory_order_release);
+						stillAlive = false;
+					}
+					else {
+						m_state.store(VoiceState::Inactive, std::memory_order_release);
+					}
+					break;
 				}
 			}
 
-			return totalFramesRead;
-		};
-
-		// TODO: This 2 represents output channels and should probably be aquired from the output bus
-		size_t framesRequested = dst.size() / 2;
-		size_t framesRead = 0;
-
-		const float SLEW_RATE = 0.0002f;
-
-		while (framesRead < framesRequested) {
-
-			size_t framesToDecode = std::min(framesRequested - framesRead, BUFFER_FRAMES);
-			std::span<float> resamplerOutput(intermediateBuffer.data(), framesToDecode * decoderChannels);
-
-			size_t framesDecoded = m_resampler.getSamples(resamplerOutput, pitch, dataProvider);
-
-			// Mix and add to destination buffer
-			for (size_t i = 0; i < framesDecoded; i++) {
-				float sampleL;
-				float sampleR;
-
-				if (decoderChannels == 1) {
-					// Mono
-					sampleL = intermediateBuffer[i];
-					sampleR = intermediateBuffer[i];
-				}
-				else {
-					// Stereo
-					sampleL = intermediateBuffer[i * 2];
-					sampleR = intermediateBuffer[i * 2 + 1];
-				}
-
-				float diffL = targetGainL - m_currentGainL;
-				if (std::abs(diffL) < SLEW_RATE) {
-					m_currentGainL = targetGainL;
-				}
-				else {
-					m_currentGainL += (diffL > 0) ? SLEW_RATE : -SLEW_RATE;
-				}
-
-				float diffR = targetGainR - m_currentGainR;
-				if (std::abs(diffR) < SLEW_RATE) {
-					m_currentGainR = targetGainR;
-				}
-				else {
-					m_currentGainR += (diffR > 0) ? SLEW_RATE : -SLEW_RATE;
-				}
-
-				size_t dstIndex = (framesRead + i) * 2;
-				dst[dstIndex]		+= sampleL * m_currentGainL;
-				dst[dstIndex + 1]	+= sampleR * m_currentGainR;
-			}
-
-			framesRead += framesDecoded;
-			if (m_state.load() != VoiceState::Playing) {
-				break;
-			}
-
-			if (!continuePlayback && framesDecoded < framesToDecode) {
-				if (m_destroyOnFinish.load()) {
-					m_state.store(VoiceState::Dead);
-				}
-				else {
-					m_state.store(VoiceState::Inactive);
-				}
-				break;
+			if (m_state.load(std::memory_order_relaxed) == VoiceState::Dead) {
+				stillAlive = false;
 			}
 		}
 
-		return m_state.load() != VoiceState::Dead;
+		m_isMixing.store(false, std::memory_order_release);
+
+		return stillAlive;
 	}
 
 	void Voice::update(float deltaTime, const ListenerData& listener, float globalDopplerScale) {
@@ -232,7 +256,7 @@ namespace siren {
 			if (m_dopplerEffect) {
 				// Doppler pitch calculation (Relative Velocity Projection Formula)
 				if (distance < 0.001f) {
-					m_dopplerPitch.store(1.0f);
+					m_dopplerPitch.store(1.0f, std::memory_order_relaxed);
 				}
 				else {
 					// Project velocites onto listenerToVoice
@@ -243,11 +267,11 @@ namespace siren {
 					float numerator = SPEED_OF_SOUND + (listenerVel * dopplerStrenght);
 					float denominator = SPEED_OF_SOUND + (emitterVel * dopplerStrenght);
 					float dopplerPitch = numerator / std::max(denominator, 0.1f);
-					m_dopplerPitch.store(std::clamp(dopplerPitch, 0.1f, 4.0f));
+					m_dopplerPitch.store(std::clamp(dopplerPitch, 0.1f, 4.0f), std::memory_order_relaxed);
 				}
 			}
 			else {
-				m_dopplerPitch.store(1.0f);
+				m_dopplerPitch.store(1.0f, std::memory_order_relaxed);
 			}
 		}
 
@@ -257,61 +281,70 @@ namespace siren {
 		// Apply pan and volume
 		float gainL = std::cos(angle) * volume;
 		float gainR = std::sin(angle) * volume;
-		m_targetGainL.store(gainL);
-		m_targetGainR.store(gainR);
+		m_targetGainL.store(gainL, std::memory_order_relaxed);
+		m_targetGainR.store(gainR, std::memory_order_relaxed);
 	}
 
 	void Voice::play() {
 		if (m_decoder) {
-			if (m_state.load() == VoiceState::Dead) {
+			if (m_state.load(std::memory_order_relaxed) == VoiceState::Dead) {
 				SIREN_LOG_ERROR("Voice::play() Unable to play dead voice");
 				return;
 			}
 
-			m_destroyOnFinish.store(false);
+			if (!isPlaying()) {
 
-			m_state.store(VoiceState::Playing);
-			snapToTargetGain();
+				m_destroyOnFinish.store(false, std::memory_order_relaxed);
+
+				m_state.store(VoiceState::Playing, std::memory_order_release);
+				snapToTargetGain();
+			}
 		}
 	}
 
 	void Voice::playOneShot() {
 		if (m_decoder) {
-			if (m_state.load() == VoiceState::Dead) {
+			if (m_state.load(std::memory_order_relaxed) == VoiceState::Dead) {
 				SIREN_LOG_ERROR("Voice::play() Unable to play dead voice");
 				return;
 			}
 
-			m_destroyOnFinish.store(true);
-			m_isLooping.store(false);
-			
-			m_decoder->seek(0);
+			if (!isPlaying()) {
+				m_destroyOnFinish.store(true, std::memory_order_relaxed);
+				m_isLooping.store(false, std::memory_order_relaxed);
 
-			m_state.store(VoiceState::Playing);
-			snapToTargetGain();
+				m_decoder->seek(0);
+
+				m_state.store(VoiceState::Playing, std::memory_order_release);
+				snapToTargetGain();
+			}
 		}
 	}
 
 	void Voice::pause() {
-		m_state.store(VoiceState::Paused);
+		m_state.store(VoiceState::Paused, std::memory_order_release);
 	}
 
 	void Voice::stop() {
-		if (m_destroyOnFinish.load() == true) {
+		if (m_destroyOnFinish.load(std::memory_order_relaxed) == true) {
 			m_state.store(VoiceState::Dead);
 		}
 		else {
-			m_state.store(VoiceState::Inactive);
-			if (m_decoder) m_decoder->seek(0);
+			if (m_decoder) m_seekFrame.store(0, std::memory_order_relaxed);
+			m_state.store(VoiceState::Inactive, std::memory_order_release);
 		}
 	}
 
 	void Voice::destroy() {
-		m_state.store(VoiceState::Dead);
+		m_state.store(VoiceState::Dead, std::memory_order_seq_cst);
+
+		while (m_isMixing.load(std::memory_order_acquire)) {
+			std::this_thread::yield();
+		}
 	}
 
 	void Voice::setBus(AudioBus* bus) {
-		m_bus = bus;
+		m_bus.store(bus, std::memory_order_release);
 	}
 
 	void Voice::setPan(float value) {
@@ -323,7 +356,7 @@ namespace siren {
 	}
 
 	void Voice::setPitch(float value) {
-		m_pitch.store(std::clamp(value, 0.1f, 4.0f));
+		m_pitch.store(std::clamp(value, 0.1f, 4.0f), std::memory_order_relaxed);
 	}
 
 	void Voice::setDopplerEffect(bool value) {
@@ -335,7 +368,7 @@ namespace siren {
 	}
 
 	void Voice::setLooping(bool value) {
-		m_isLooping.store(value);
+		m_isLooping.store(value, std::memory_order_relaxed);
 	}
 
 	void Voice::setTag(const std::string& tag) {
@@ -349,11 +382,15 @@ namespace siren {
 	void Voice::seek(float timePoint) {
 		// TODO: Check if timePoint is out of bounds
 		// This will require that we store totalFrames in voice as a memeber variable
-		if (m_state.load() == VoiceState::Dead) {
+		if (m_state.load(std::memory_order_relaxed) == VoiceState::Dead) {
 			return;
 		}
 		int64_t frame = static_cast<int64_t>(timePoint * m_sampleRate);
 		m_seekFrame.store(frame);
+	}
+
+	VoiceState Voice::getState() {
+		return m_state.load(std::memory_order_relaxed);
 	}
 
 	float Voice::getPan() const {
@@ -365,7 +402,7 @@ namespace siren {
 	}
 
 	float Voice::getPitch() const {
-		return m_pitch.load();
+		return m_pitch.load(std::memory_order_relaxed);
 	}
 
 	float Voice::getDopplerFactor() const {
@@ -373,11 +410,11 @@ namespace siren {
 	}
 
 	bool Voice::isLooping() const {
-		return m_isLooping.load();
+		return m_isLooping.load(std::memory_order_relaxed);
 	}
 
 	bool Voice::isPlaying() const {
-		return m_state.load() == VoiceState::Playing;
+		return m_state.load(std::memory_order_relaxed) == VoiceState::Playing;
 	}
 
 	void Voice::setPosition(const Vector3& pos) {

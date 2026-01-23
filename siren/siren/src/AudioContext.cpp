@@ -11,9 +11,7 @@ namespace siren {
 
 	void AudioContext::data_callback(ma_device* pDevice, void* pOutput, const void* pInput, uint32_t frameCount) {
 		AudioContext* context = static_cast<AudioContext*>(pDevice->pUserData);
-		if (!context) {
-			return;
-		}
+		if (!context) return;
 
 		float* outBuffer = static_cast<float*>(pOutput);
 		size_t channelCount = static_cast<size_t>(pDevice->playback.channels);
@@ -22,20 +20,30 @@ namespace siren {
 		// Prepare final output buffer and bus buffers
 		std::fill_n(outBuffer, requestedSamples, 0.0f); // Silence baseline
 
+		// Handle flush request
+		if (context->m_flushRequested.load(std::memory_order_acquire)) {
+			context->m_voicesAudio.clear();
+
+			context->m_flushRequested.store(false, std::memory_order_release);
+			context->m_flushCompleted.store(true, std::memory_order_release);
+
+			return;
+		}
+
+		// Process pending voices
+		PendingVoiceNode* inbox = context->m_inboxHead.exchange(nullptr, std::memory_order_acq_rel); // Get inbox
+		while (inbox) {
+			std::unique_ptr<PendingVoiceNode> node(inbox);
+			inbox = node->next;
+			context->m_voicesAudio.push_back(std::move(node->voice));
+		}
+
 		std::shared_lock<std::shared_mutex> lock(context->m_busMutex);
 		for (auto& [name, bus] : context->m_busRegistry) {
 			bus->prepare(frameCount, channelCount);
 		}
 
-		// Process pending voices
-		PendingVoiceNode* rawList = context->m_inboxHead.exchange(nullptr); // Get inbox
-		while (rawList != nullptr) {
-			std::unique_ptr<PendingVoiceNode> node(rawList);
-			rawList = node->next;
-			context->m_voiceRegistry.push_back(std::move(node->voice));
-		}
-
-		auto& voices = context->m_voiceRegistry;
+		auto& voices = context->m_voicesAudio;
 		for (auto it = voices.begin(); it != voices.end(); ) {
 			auto& voice = *it;
 
@@ -48,11 +56,8 @@ namespace siren {
 			}
 		}
 				
-		auto masterIt = context->m_busRegistry.find("Master");
-		if (masterIt == context->m_busRegistry.end()) {
-			return;
-		}
-		AudioBus* masterBus = masterIt->second.get();
+		AudioBus* masterBus = context->m_cachedMasterBus;
+		if (!masterBus) return;
 
 		for (auto& [name, bus] : context->m_busRegistry) {
 			if (bus.get() != masterBus) {
@@ -84,6 +89,7 @@ namespace siren {
 	AudioContext::AudioContext() {
 		m_device = std::make_unique<ma_device>();
 		m_busRegistry["Master"] = std::make_unique<AudioBus>();
+		m_cachedMasterBus = m_busRegistry["Master"].get();
 	}
 
 	AudioContext::~AudioContext() {
@@ -169,11 +175,39 @@ namespace siren {
 		}
 
 		// Voice updates
-		for (auto& voice : m_voiceRegistry) {
-			voice->update(deltaTime, listener, m_globalDopplerScale);
+		for (auto it = m_voicesMain.begin(); it != m_voicesMain.end(); ) {
+			auto& voice = *it;
+
+			if (voice->getState() == VoiceState::Dead) {
+				it = m_voicesMain.erase(it);
+			}
+			else {
+				voice->update(deltaTime, listener, m_globalDopplerScale);
+				it++;
+			}
 		}
 
 		m_previousListenerPos = listener.position;
+	}
+
+	void AudioContext::flush() {
+		m_voicesMain.clear();
+
+		PendingVoiceNode* node = m_inboxHead.exchange(nullptr, std::memory_order_acquire);
+		while (node) {
+			PendingVoiceNode* next = node->next;
+			delete node;
+			node = next;
+		}
+
+		// Request flush from audio thread
+		m_flushCompleted.store(false, std::memory_order_release);
+		m_flushRequested.store(true, std::memory_order_release);
+
+		// Wait for flush to finish
+		while (!m_flushCompleted.load(std::memory_order_acquire)) {
+			std::this_thread::yield();
+		}
 	}
 
 	void AudioContext::setCoordinateSystem(CoordinateSystem system) {
@@ -316,6 +350,8 @@ namespace siren {
 		size_t seconds = totalFrames / sampleRate;
 		SIREN_LOG_INFO("Created sound [" << voice->getTag() << ", " << seconds / 60 << "m " << seconds % 60 << "s]");
 
+		m_voicesMain.push_back(voice);
+
 		auto newNode = std::make_unique<PendingVoiceNode>();
 		newNode->voice = voice;
 
@@ -327,6 +363,7 @@ namespace siren {
 		} while (!m_inboxHead.compare_exchange_weak(head, rawNode));
 
 		newNode.release(); // Pointer is now owned by inbox
+
 		return voice; 
 	}
 }

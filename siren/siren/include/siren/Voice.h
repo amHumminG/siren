@@ -23,12 +23,14 @@ namespace siren {
 
 	class Voice {
 	private:
-		AudioBus* m_bus = nullptr;
+		std::atomic<AudioBus*> m_bus{ nullptr };
 
 		std::unique_ptr<Decoder> m_decoder;
 		Resampler m_resampler;
 		
 		std::atomic<VoiceState> m_state{ VoiceState::Inactive };
+		std::atomic<bool> m_isMixing{ false }; // Gatekeeper
+
 		VoiceMode m_mode = VoiceMode::Global;
 		float m_volume = 1.0f;	// clamped between 0.0f and 1.0f
 		float m_pan = 0.0f;		// clamped between -1.0f and 1.0f
@@ -136,12 +138,15 @@ namespace siren {
 		/// @param tag The tag given to the voice
 		void setTag(const std::string& tag);
 
+		/// @brief Never call this from the audio thread
 		/// @return The tag given to the voice
 		const std::string& getTag();
 
 		/// @brief Sends a request to seek to a given time point
 		/// @param timePoint Represents the position (in seconds) to jump to
 		void seek(float timePoint);
+
+		VoiceState getState();
 
 		/// @return Current pan
 		float getPan() const;

@@ -22,16 +22,20 @@ namespace siren {
 		std::unique_ptr<ma_device> m_device; // The device used for audio playback
 
 		std::unordered_map<std::string, std::unique_ptr<AudioBus>> m_busRegistry; // Contains all audio buses
+		AudioBus* m_cachedMasterBus = nullptr;
 		std::shared_mutex m_busMutex;
 
 		struct PendingVoiceNode {
 			std::shared_ptr<Voice> voice;
 			PendingVoiceNode* next = nullptr;
 		};
-
 		std::atomic<PendingVoiceNode*> m_inboxHead{ nullptr }; // Linked list of pending voices to be played
 
-		std::vector<std::shared_ptr<Voice>> m_voiceRegistry; // Only accessed by data_callback
+		std::vector<std::shared_ptr<Voice>> m_voicesMain;	// Only accessed by simulation thread
+		std::vector<std::shared_ptr<Voice>> m_voicesAudio;	// Only accessed by audio thread
+
+		std::atomic<bool> m_flushRequested{ false };
+		std::atomic<bool> m_flushCompleted{ false };
 		
 		CoordinateSystem m_coordinateSystem = CoordinateSystem::LeftHanded;
 		ListenerData m_listener; // Represents the listener (most likely the player)
@@ -72,6 +76,8 @@ namespace siren {
 		/// Handles all audio logic
 		/// @param deltaTime Frame time difference
 		void update(float deltaTime);
+
+		void flush();
 
 		/// @brief Sets the orientation of the coordinatesystem
 		void setCoordinateSystem(CoordinateSystem system);
