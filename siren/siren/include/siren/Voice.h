@@ -142,7 +142,7 @@ namespace siren {
 		/// @param timePoint Represents the position (in seconds) to jump to
 		void seek(float timePoint);
 
-		VoiceState getState();
+		VoiceState getState(); // TODO: This should not be visible to the user
 
 		/// @return Current pan
 		float getPan() const;
@@ -161,6 +161,10 @@ namespace siren {
 
 		/// @return True if voice state = Playing, otherwise false
 		bool isPlaying() const;
+
+		bool isPaused() const;
+
+		bool isFinished() const;
 
 		/// @brief Sets the voice position and sets mode to spatial if
 		/// voice is in any other mode

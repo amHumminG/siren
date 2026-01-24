@@ -416,6 +416,15 @@ namespace siren {
 		return m_state.load(std::memory_order_relaxed) == VoiceState::Playing;
 	}
 
+	bool Voice::isPaused() const {
+		return m_state.load(std::memory_order_relaxed) == VoiceState::Paused;
+	}
+
+	bool Voice::isFinished() const {
+		VoiceState state = m_state.load(std::memory_order_relaxed);
+		return state == VoiceState::Inactive || state == VoiceState::Dead;
+	}
+
 	void Voice::setPosition(const Vector3& pos) {
 		m_position = pos;
 		m_mode = VoiceMode::Spatial;
