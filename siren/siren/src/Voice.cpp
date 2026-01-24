@@ -315,7 +315,7 @@ namespace siren {
 			m_destroyOnFinish.store(true, std::memory_order_relaxed);
 			m_isLooping.store(false, std::memory_order_relaxed);
 			m_snapGainRequested.store(true, std::memory_order_relaxed);
-			m_decoder->seek(0);
+			m_seekFrame.store(0, std::memory_order_relaxed);
 			m_state.store(VoiceState::Playing, std::memory_order_release);
 		}
 	}
