@@ -41,7 +41,7 @@ namespace siren {
 
 		m_targetGainL.store(1.0f);
 		m_targetGainR.store(1.0f);
-		snapToTargetGain();
+		m_snapGainRequested.store(true, std::memory_order_relaxed);
 
 		m_state.store(VoiceState::Inactive);
 
@@ -95,6 +95,11 @@ namespace siren {
 			bool isLooping = m_isLooping.load(std::memory_order_relaxed);
 			float targetGainL = m_targetGainL.load(std::memory_order_relaxed);
 			float targetGainR = m_targetGainR.load(std::memory_order_relaxed);
+
+			if (m_snapGainRequested.exchange(false, std::memory_order_relaxed)) {
+				m_currentGainL = targetGainL;
+				m_currentGainR = targetGainR;
+			}
 
 			bool continuePlayback = true; // Lambda sets this to false if EOF is hit and voice is not looping or on error
 
@@ -293,11 +298,9 @@ namespace siren {
 			}
 
 			if (!isPlaying()) {
-
 				m_destroyOnFinish.store(false, std::memory_order_relaxed);
-
+				m_snapGainRequested.store(true, std::memory_order_relaxed);
 				m_state.store(VoiceState::Playing, std::memory_order_release);
-				snapToTargetGain();
 			}
 		}
 	}
@@ -305,19 +308,15 @@ namespace siren {
 	void Voice::playOneShot() {
 		if (m_decoder) {
 			if (m_state.load(std::memory_order_relaxed) == VoiceState::Dead) {
-				SIREN_LOG_ERROR("Voice::play() Unable to play dead voice");
+				SIREN_LOG_ERROR("Voice::playOneShot() Unable to play dead voice");
 				return;
 			}
 
-			if (!isPlaying()) {
-				m_destroyOnFinish.store(true, std::memory_order_relaxed);
-				m_isLooping.store(false, std::memory_order_relaxed);
-
-				m_decoder->seek(0);
-
-				m_state.store(VoiceState::Playing, std::memory_order_release);
-				snapToTargetGain();
-			}
+			m_destroyOnFinish.store(true, std::memory_order_relaxed);
+			m_isLooping.store(false, std::memory_order_relaxed);
+			m_snapGainRequested.store(true, std::memory_order_relaxed);
+			m_decoder->seek(0);
+			m_state.store(VoiceState::Playing, std::memory_order_release);
 		}
 	}
 
@@ -386,7 +385,7 @@ namespace siren {
 			return;
 		}
 		int64_t frame = static_cast<int64_t>(timePoint * m_sampleRate);
-		m_seekFrame.store(frame);
+		m_seekFrame.store(frame, std::memory_order_relaxed);
 	}
 
 	VoiceState Voice::getState() {

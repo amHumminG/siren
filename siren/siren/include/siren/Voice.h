@@ -45,6 +45,7 @@ namespace siren {
 		std::atomic<float> m_targetGainR{ 1.0f };
 		float m_currentGainL = 1.0f;
 		float m_currentGainR = 1.0f;
+		std::atomic<float> m_snapGainRequested{ false };
 
 		std::atomic<int64_t> m_seekFrame{ -1 }; // Seek request flag (-1 = No pending seek)
 		uint32_t m_sampleRate = 0; // Stored to be used for frame to seconds conversion
@@ -62,11 +63,6 @@ namespace siren {
 		Vector3 m_velocity; // The velocity of the voice (will be used if provided for that frame)
 		bool m_velocitySetThisFrame = false; // True if velocity has been manualy set for that frame
 		float m_velocitySmoothing = 10.0f;
-
-		void snapToTargetGain() {
-			m_currentGainL = m_targetGainL.load();
-			m_targetGainR = m_targetGainR.load();
-		}
 
 	public:
 		Voice() = default;
