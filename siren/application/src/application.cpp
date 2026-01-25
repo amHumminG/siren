@@ -75,11 +75,12 @@ int main() {
 	siren::AudioContext context;
 	context.init();
 	context.setCoordinateSystem(CoordinateSystem::RightHanded);
-	context.createBus("Music");
-	context.createBus("SFX");
-	float masterVol = context.getBusVolume("Master");
-	float musicVol = context.getBusVolume("Music");
-	float sfxVol = context.getBusVolume("SFX");
+	auto masterBus = context.getBus("Master");
+	auto musicBus = context.createBus("Music");
+	auto sfxBus = context.createBus("SFX");
+	float masterVol = masterBus->getVolume();
+	float musicVol = musicBus->getVolume();
+	float sfxVol = sfxBus->getVolume();
 
 	bool mouseLock = false;
 	Vector3 start = { 0.0f, 5.0f, 0.0f };
@@ -180,7 +181,7 @@ int main() {
 		ImGui::BeginGroup();
 		ImGui::Text("Master");
 		if (ImGui::VSliderFloat("##Master", sliderSize, &masterVol, 0.0f, 1.0f, "")) {
-			context.setBusVolume("Master", masterVol);
+			masterBus->setVolume(masterVol);
 		}
 		ImGui::EndGroup();
 
@@ -190,7 +191,7 @@ int main() {
 		ImGui::BeginGroup();
 		ImGui::Text("Music");
 		if (ImGui::VSliderFloat("##Music", sliderSize, &musicVol, 0.0f, 1.0f, "")) {
-			context.setBusVolume("Music", musicVol);
+			musicBus->setVolume(musicVol);
 		}
 		ImGui::EndGroup();
 
@@ -200,7 +201,7 @@ int main() {
 		ImGui::BeginGroup();
 		ImGui::Text("SFX");
 		if (ImGui::VSliderFloat("##SFX", sliderSize, &sfxVol, 0.0f, 1.0f, "")) {
-			context.setBusVolume("SFX", sfxVol);
+			sfxBus->setVolume(sfxVol);
 		}
 		ImGui::EndGroup();
 
