@@ -21,9 +21,11 @@ namespace siren {
 		bool m_initialized = false;
 		std::unique_ptr<ma_device> m_device; // The device used for audio playback
 
-		std::unordered_map<std::string, std::shared_ptr<AudioBus>> m_buses; // Contains all audio buses
-		std::shared_ptr<AudioBus> m_cachedMasterBus = nullptr;
-		std::shared_mutex m_busMutex;
+		std::mutex m_busMutex;
+		std::unordered_map<std::string, std::shared_ptr<AudioBus>> m_busesMain; // Contains all audio buses
+		std::shared_ptr<AudioBus> m_masterBus = nullptr;
+		using BusList = std::vector<std::shared_ptr<AudioBus>>;
+		std::atomic<std::shared_ptr<BusList>> m_busesAudio; // Snapshot of the buses accessed by audio thread
 
 		struct PendingVoiceNode {
 			std::shared_ptr<Voice> voice;
@@ -55,10 +57,9 @@ namespace siren {
 		/// @param frameCount The number of frames requested by the audio device
 		static void data_callback(ma_device* pDevice, void* pOutput, const void* pInput, uint32_t frameCount);
 
-		/// @param busName The name of the bus
-		/// @return A pointer to the audio bus or nullptr if no bus 
-		/// with the specified name exist
-		std::shared_ptr<AudioBus> getBus(const std::string& busName) noexcept;
+		/// @brief Updates the list of buses that the audio thread can access to match the
+		/// main thread
+		void refreshBusesAudio();
 
 	public:
 		AudioContext();
@@ -123,6 +124,13 @@ namespace siren {
 		/// @param busName The name of the bus
 		/// @return True if the bus was created, otherwise false
 		std::shared_ptr<AudioBus> createBus(const std::string& busName);
+
+		void removeBus(const std::string& busName);
+
+		/// @param busName The name of the bus
+		/// @return A pointer to the audio bus or nullptr if no bus 
+		/// with the specified name exist
+		std::shared_ptr<AudioBus> getBus(const std::string& busName) noexcept;
 
 
 		std::shared_ptr<Voice> createVoice(const Sound& sound, std::shared_ptr<AudioBus> bus=nullptr);

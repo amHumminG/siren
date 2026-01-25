@@ -14,8 +14,8 @@ namespace siren {
 		if (!context) return;
 
 		float* outBuffer = static_cast<float*>(pOutput);
-		size_t channelCount = static_cast<size_t>(pDevice->playback.channels);
-		size_t requestedSamples = frameCount * channelCount;
+		size_t channels = static_cast<size_t>(pDevice->playback.channels);
+		size_t requestedSamples = frameCount * channels;
 
 		// Prepare final output buffer and bus buffers
 		std::fill_n(outBuffer, requestedSamples, 0.0f); // Silence baseline
@@ -37,10 +37,10 @@ namespace siren {
 			inbox = node->next;
 			context->m_voicesAudio.push_back(std::move(node->voice));
 		}
-
-		std::shared_lock<std::shared_mutex> lock(context->m_busMutex);
-		for (auto& [name, bus] : context->m_buses) {
-			bus->prepare(frameCount, channelCount);
+		
+		std::shared_ptr<BusList> buses = context->m_busesAudio.load(std::memory_order_acquire);
+		for (auto& bus : *buses) {
+			bus->prepare(frameCount, channels);
 		}
 
 		auto& voices = context->m_voicesAudio;
@@ -56,16 +56,15 @@ namespace siren {
 			}
 		}
 				
-		std::shared_ptr<AudioBus> masterBus = context->m_cachedMasterBus;
+		std::shared_ptr<AudioBus> masterBus = context->m_masterBus;
 		if (!masterBus) return;
+		masterBus->prepare(frameCount, channels);
 
-		for (auto& [name, bus] : context->m_buses) {
-			if (bus != masterBus) {
-				bus->process();
-				size_t limit = (std::min)(bus->m_buffer.size(), masterBus->m_buffer.size());
-				for (size_t i = 0; i < limit; i++) {
-					masterBus->m_buffer[i] += bus->m_buffer[i];
-				}
+		for (auto& bus : *buses) {
+			bus->process();
+			size_t limit = (std::min)(bus->m_buffer.size(), masterBus->m_buffer.size());
+			for (size_t i = 0; i < limit; i++) {
+				masterBus->m_buffer[i] += bus->m_buffer[i];
 			}
 		}
 
@@ -75,21 +74,21 @@ namespace siren {
 		}
 	}
 
-	std::shared_ptr<AudioBus> AudioContext::getBus(const std::string& busName) noexcept {
-		std::shared_lock<std::shared_mutex> lock(m_busMutex);
+	void AudioContext::refreshBusesAudio() {
+		auto snapshot = std::make_shared<BusList>();
+		snapshot->reserve(m_busesMain.size());
 
-		auto it = m_buses.find(busName);
-		if (it == m_buses.end()) {
-			return nullptr;
+		for (const auto& [name, bus] : m_busesMain) {
+			snapshot->push_back(bus);
 		}
 
-		return it->second;
+		m_busesAudio.store(snapshot, std::memory_order_relaxed);
 	}
 
 	AudioContext::AudioContext() {
 		m_device = std::make_unique<ma_device>();
-		m_buses["Master"] = std::make_unique<AudioBus>();
-		m_cachedMasterBus = m_buses["Master"];
+		m_masterBus = std::make_unique<AudioBus>();
+		m_busesAudio.store(std::make_shared<BusList>());
 	}
 
 	AudioContext::~AudioContext() {
@@ -267,18 +266,41 @@ namespace siren {
 	}
 
 	std::shared_ptr<AudioBus> AudioContext::createBus(const std::string& busName) {
-		std::unique_lock<std::shared_mutex> lock(m_busMutex);
+		std::lock_guard<std::mutex> lock(m_busMutex);
 
-		auto it = m_buses.find(busName);
-		if (it != m_buses.end()) {
+		auto it = m_busesMain.find(busName);
+		if (it != m_busesMain.end() || busName == "Master") {
 			SIREN_LOG_ERROR("AudioContext::createBus() Bus with name: " << busName << " already exists");
 			return nullptr;
 		}
 
 		auto bus = std::make_shared<AudioBus>();
-		m_buses[busName] = bus;
+		m_busesMain[busName] = bus;
+
+		refreshBusesAudio();
 
 		return bus;
+	}
+
+	void AudioContext::removeBus(const std::string& busName) {
+		if (busName == "Master") return;
+
+		std::lock_guard<std::mutex> lock(m_busMutex);
+		auto it = m_busesMain.find(busName);
+		if (it != m_busesMain.end()) {
+			m_busesMain.erase(it);
+			refreshBusesAudio();
+		}
+	}
+
+	std::shared_ptr<AudioBus> AudioContext::getBus(const std::string& busName) noexcept {
+		if (busName == "Master") return m_masterBus;
+
+		std::lock_guard<std::mutex> lock(m_busMutex);
+		auto it = m_busesMain.find(busName);
+		if (it == m_busesMain.end()) return nullptr;
+
+		return it->second;
 	}
 
 	std::shared_ptr<Voice> AudioContext::createVoice(const Sound& sound, std::shared_ptr<AudioBus> bus) {
@@ -315,7 +337,7 @@ namespace siren {
 		}
 
 		if (bus == nullptr) {
-			bus = m_cachedMasterBus;
+			bus = m_masterBus;
 		}
 		if (bus == nullptr) { // Default to master bus
 			SIREN_LOG_ERROR("AudioContext::createVoice() Master bus does not exist");
