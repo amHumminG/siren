@@ -23,5 +23,11 @@ namespace siren {
 
 		/// @brief Calculates and applies the bus volume to its buffer
 		void process();
+
+
+		void setVolume(float value);
+
+
+		float getVolume();
 	};
 }

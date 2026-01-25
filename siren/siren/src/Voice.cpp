@@ -70,7 +70,7 @@ namespace siren {
 				return true; // Still alive but not mixed
 			}
 
-			AudioBus* bus = m_bus.load(std::memory_order_acquire);
+			std::shared_ptr<AudioBus> bus = m_bus.load(std::memory_order_acquire);
 			if (!m_decoder || !bus) {
 				m_isMixing.store(false, std::memory_order_release);
 				return false; // Dead
@@ -342,7 +342,7 @@ namespace siren {
 		}
 	}
 
-	void Voice::setBus(AudioBus* bus) {
+	void Voice::setBus(std::shared_ptr<AudioBus> bus) {
 		m_bus.store(bus, std::memory_order_release);
 	}
 

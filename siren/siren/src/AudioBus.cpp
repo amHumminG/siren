@@ -39,4 +39,12 @@ namespace siren {
 			m_buffer[i + 1]	*= m_currentGain;
 		}
 	}
+
+	void AudioBus::setVolume(float value) {
+		m_volume.store(std::clamp(value, 0.0f, 1.0f), std::memory_order_relaxed);
+	}
+
+	float AudioBus::getVolume() {
+		return m_volume.load(std::memory_order_relaxed);
+	}
 }

@@ -21,8 +21,8 @@ namespace siren {
 		bool m_initialized = false;
 		std::unique_ptr<ma_device> m_device; // The device used for audio playback
 
-		std::unordered_map<std::string, std::unique_ptr<AudioBus>> m_busRegistry; // Contains all audio buses
-		AudioBus* m_cachedMasterBus = nullptr;
+		std::unordered_map<std::string, std::shared_ptr<AudioBus>> m_buses; // Contains all audio buses
+		std::shared_ptr<AudioBus> m_cachedMasterBus = nullptr;
 		std::shared_mutex m_busMutex;
 
 		struct PendingVoiceNode {
@@ -58,7 +58,7 @@ namespace siren {
 		/// @param busName The name of the bus
 		/// @return A pointer to the audio bus or nullptr if no bus 
 		/// with the specified name exist
-		AudioBus* getBus(const std::string& busName) noexcept;
+		std::shared_ptr<AudioBus> getBus(const std::string& busName) noexcept;
 
 	public:
 		AudioContext();
@@ -122,22 +122,16 @@ namespace siren {
 		/// @brief Creates a bus with the specified name
 		/// @param busName The name of the bus
 		/// @return True if the bus was created, otherwise false
-		bool createBus(const std::string& busName);
+		std::shared_ptr<AudioBus> createBus(const std::string& busName);
 
-		/// @param volume New volume (clamped between 0.0f and 1.0f)
-		bool setBusVolume(const std::string& busName, float volume);
 
-		/// @brief Returns the volume of a specified bus
-		/// 
-		/// If no bus with the specified name exists, return will be 0.0f
-		/// @param busName The name of the bus
-		float getBusVolume(const std::string& busName);
+		std::shared_ptr<Voice> createVoice(const Sound& sound, std::shared_ptr<AudioBus> bus=nullptr);
 
 		/// @brief Plays a sound
 		/// @param sound The sound to be played
 		/// @param busName The bus that the sound should be played to. If none is provided,
 		/// it will default to Master
 		/// @return A shared pointer to the voice that has been created to play the sound
-		std::shared_ptr<Voice> createVoice(const Sound& sound, const std::string& busName="Master");
+		std::shared_ptr<Voice> createVoice(const Sound& sound, const std::string& busName);
 	};
 }

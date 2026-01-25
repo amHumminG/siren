@@ -39,7 +39,7 @@ namespace siren {
 		}
 
 		std::shared_lock<std::shared_mutex> lock(context->m_busMutex);
-		for (auto& [name, bus] : context->m_busRegistry) {
+		for (auto& [name, bus] : context->m_buses) {
 			bus->prepare(frameCount, channelCount);
 		}
 
@@ -56,11 +56,11 @@ namespace siren {
 			}
 		}
 				
-		AudioBus* masterBus = context->m_cachedMasterBus;
+		std::shared_ptr<AudioBus> masterBus = context->m_cachedMasterBus;
 		if (!masterBus) return;
 
-		for (auto& [name, bus] : context->m_busRegistry) {
-			if (bus.get() != masterBus) {
+		for (auto& [name, bus] : context->m_buses) {
+			if (bus != masterBus) {
 				bus->process();
 				size_t limit = (std::min)(bus->m_buffer.size(), masterBus->m_buffer.size());
 				for (size_t i = 0; i < limit; i++) {
@@ -75,21 +75,21 @@ namespace siren {
 		}
 	}
 
-	AudioBus* AudioContext::getBus(const std::string& busName) noexcept {
+	std::shared_ptr<AudioBus> AudioContext::getBus(const std::string& busName) noexcept {
 		std::shared_lock<std::shared_mutex> lock(m_busMutex);
 
-		auto it = m_busRegistry.find(busName);
-		if (it == m_busRegistry.end()) {
+		auto it = m_buses.find(busName);
+		if (it == m_buses.end()) {
 			return nullptr;
 		}
 
-		return it->second.get();
+		return it->second;
 	}
 
 	AudioContext::AudioContext() {
 		m_device = std::make_unique<ma_device>();
-		m_busRegistry["Master"] = std::make_unique<AudioBus>();
-		m_cachedMasterBus = m_busRegistry["Master"].get();
+		m_buses["Master"] = std::make_unique<AudioBus>();
+		m_cachedMasterBus = m_buses["Master"];
 	}
 
 	AudioContext::~AudioContext() {
@@ -266,43 +266,22 @@ namespace siren {
 		return m_listener;
 	}
 
-	bool AudioContext::createBus(const std::string& busName) {
+	std::shared_ptr<AudioBus> AudioContext::createBus(const std::string& busName) {
 		std::unique_lock<std::shared_mutex> lock(m_busMutex);
 
-		auto it = m_busRegistry.find(busName);
-		if (it != m_busRegistry.end()) {
+		auto it = m_buses.find(busName);
+		if (it != m_buses.end()) {
 			SIREN_LOG_ERROR("AudioContext::createBus() Bus with name: " << busName << " already exists");
-			return false;
+			return nullptr;
 		}
 
-		auto bus = std::make_unique<AudioBus>();
-		m_busRegistry[busName] = std::move(bus);
+		auto bus = std::make_shared<AudioBus>();
+		m_buses[busName] = bus;
 
-		return true;
+		return bus;
 	}
 
-	bool AudioContext::setBusVolume(const std::string& busName, float volume) {
-		AudioBus* bus = getBus(busName);
-		if (bus == nullptr) {
-			SIREN_LOG_WARNING("AudioContext::setBusVolume() No bus with name: " << busName << " exists");
-			return false;
-		}
-
-		bus->m_volume.store(std::clamp(volume, 0.0f, 1.0f));
-		return true;
-	}
-
-	float AudioContext::getBusVolume(const std::string& busName) {
-		AudioBus* bus = getBus(busName);
-		if (!bus) {
-			SIREN_LOG_WARNING("AudioContext::getBusVolume() No bus with name: " << busName << " exists");
-			return 0.0f;
-		}
-
-		return bus->m_volume;
-	}
-
-	std::shared_ptr<Voice> AudioContext::createVoice(const Sound& sound, const std::string& busName) {
+	std::shared_ptr<Voice> AudioContext::createVoice(const Sound& sound, std::shared_ptr<AudioBus> bus) {
 		if (!sound.isValid()) {
 			SIREN_LOG_ERROR("AudioContext::createVoice() Invalid sound");
 			return nullptr;
@@ -335,12 +314,10 @@ namespace siren {
 			return nullptr;
 		}
 
-		AudioBus* bus = getBus(busName);
 		if (bus == nullptr) {
-			SIREN_LOG_WARNING("AudioContext::createVoice() No bus with name: " << busName << " exists. Defaulting to Master");
-			bus = getBus("Master");
+			bus = m_cachedMasterBus;
 		}
-		if (bus == nullptr) { // Default to master bus if bus was not found
+		if (bus == nullptr) { // Default to master bus
 			SIREN_LOG_ERROR("AudioContext::createVoice() Master bus does not exist");
 			return nullptr;
 		}
@@ -357,13 +334,28 @@ namespace siren {
 
 		PendingVoiceNode* rawNode = newNode.get();
 		PendingVoiceNode* head = m_inboxHead.load();
-		
+
 		do {
 			rawNode->next = head;
 		} while (!m_inboxHead.compare_exchange_weak(head, rawNode));
 
 		newNode.release(); // Pointer is now owned by inbox
 
-		return voice; 
+		return voice;
+	}
+
+	std::shared_ptr<Voice> AudioContext::createVoice(const Sound& sound, const std::string& busName) {
+		std::shared_ptr<AudioBus> bus = getBus(busName);
+
+		if (bus == nullptr) {
+			SIREN_LOG_WARNING("AudioContext::createVoice() No bus with name: " << busName << " exists. Defaulting to Master");
+			bus = getBus("Master");
+		}
+		if (bus == nullptr) { // Default to master bus if bus was not found
+			SIREN_LOG_ERROR("AudioContext::createVoice() Master bus does not exist");
+			return nullptr;
+		}
+
+		return createVoice(sound, bus);
 	}
 }

@@ -23,7 +23,7 @@ namespace siren {
 
 	class Voice {
 	private:
-		std::atomic<AudioBus*> m_bus{ nullptr };
+		std::atomic<std::shared_ptr<AudioBus>> m_bus{ nullptr };
 
 		std::unique_ptr<Decoder> m_decoder;
 		Resampler m_resampler;
@@ -111,7 +111,7 @@ namespace siren {
 		void destroy();
 
 		/// @param bus The bus that the voice will write to
-		void setBus(AudioBus* bus);
+		void setBus(std::shared_ptr<AudioBus> bus);
 
 		/// @param value New pan (clamped between -1.0f and 1.0f)
 		void setPan(float value);
@@ -165,6 +165,8 @@ namespace siren {
 		bool isPaused() const;
 
 		bool isFinished() const;
+
+		bool isReusable() const;
 
 		/// @brief Sets the voice position and sets mode to spatial if
 		/// voice is in any other mode
