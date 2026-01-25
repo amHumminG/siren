@@ -33,7 +33,7 @@ namespace siren {
 			return false;
 		}
 
-		m_destroyOnFinish.store(false);
+		m_isReusable.store(true);
 		m_isLooping.store(false);
 
 		m_pitch.store(1.0f);
@@ -194,7 +194,7 @@ namespace siren {
 				}
 
 				if (!continuePlayback && framesDecoded < framesToDecode) {
-					if (m_destroyOnFinish.load(std::memory_order_relaxed)) {
+					if (!m_isReusable.load(std::memory_order_relaxed)) {
 						m_state.store(VoiceState::Dead, std::memory_order_release);
 						stillAlive = false;
 					}
@@ -298,7 +298,7 @@ namespace siren {
 			}
 
 			if (!isPlaying()) {
-				m_destroyOnFinish.store(false, std::memory_order_relaxed);
+				m_isReusable.store(true, std::memory_order_relaxed);
 				m_snapGainRequested.store(true, std::memory_order_relaxed);
 				m_state.store(VoiceState::Playing, std::memory_order_release);
 			}
@@ -312,7 +312,7 @@ namespace siren {
 				return;
 			}
 
-			m_destroyOnFinish.store(true, std::memory_order_relaxed);
+			m_isReusable.store(false, std::memory_order_relaxed);
 			m_isLooping.store(false, std::memory_order_relaxed);
 			m_snapGainRequested.store(true, std::memory_order_relaxed);
 			m_seekFrame.store(0, std::memory_order_relaxed);
@@ -325,13 +325,17 @@ namespace siren {
 	}
 
 	void Voice::stop() {
-		if (m_destroyOnFinish.load(std::memory_order_relaxed) == true) {
+		if (!m_isReusable.load(std::memory_order_relaxed)) {
 			m_state.store(VoiceState::Dead);
 		}
 		else {
 			if (m_decoder) m_seekFrame.store(0, std::memory_order_relaxed);
 			m_state.store(VoiceState::Inactive, std::memory_order_release);
 		}
+	}
+
+	void Voice::setReusable(bool value) {
+		m_isReusable.store(value, std::memory_order_relaxed);
 	}
 
 	void Voice::destroy() {
@@ -423,6 +427,10 @@ namespace siren {
 	bool Voice::isFinished() const {
 		VoiceState state = m_state.load(std::memory_order_relaxed);
 		return state == VoiceState::Inactive || state == VoiceState::Dead;
+	}
+
+	bool Voice::isReusable() const {
+		return m_isReusable.load(std::memory_order_relaxed);
 	}
 
 	void Voice::setPosition(const Vector3& pos) {

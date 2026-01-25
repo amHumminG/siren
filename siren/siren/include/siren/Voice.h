@@ -34,7 +34,7 @@ namespace siren {
 		VoiceMode m_mode = VoiceMode::Global;
 		float m_volume = 1.0f;	// clamped between 0.0f and 1.0f
 		float m_pan = 0.0f;		// clamped between -1.0f and 1.0f
-		std::atomic<bool> m_destroyOnFinish{ false };
+		std::atomic<bool> m_isReusable{ true };
 		std::atomic<float> m_isLooping{ false };
 		std::atomic<float> m_pitch{ 1.0f };
 		std::atomic<float> m_dopplerPitch{ 1.0f };
@@ -106,6 +106,8 @@ namespace siren {
 
 		/// @brief Sets voice state to Inactive
 		void stop();
+
+		void setReusable(bool value);
 
 		/// @brief Sets voice state to dead (Which will remove it from the context)
 		void destroy();
