@@ -8,8 +8,72 @@
 
 namespace siren {
 
-	Sound::Sound(SoundType type, const std::string& tag)
-		: m_type(type), m_tag(tag) {
+	Sound Sound::Stream(const std::string& path, const std::string& tag) {
+		std::string finalTag = tag;
+		if (tag.empty()) {
+			finalTag = std::filesystem::path(path).filename().string();
+		}
+		Sound sound;
+		sound.m_type = SoundType::Stream;
+		sound.m_tag = finalTag;
+		sound.m_valid = true;
+		sound.m_path = path;
+
+		if (!std::filesystem::exists(path)) {
+			SIREN_LOG_ERROR("Sound::Stream Failed to find file: " << path);
+			sound.m_valid = false;
+		}
+
+		return sound;
+	}
+
+	Sound Sound::Internal(const std::string& path, const std::string& tag) {
+		std::string finalTag = tag.empty() ? path : tag;
+		Sound sound;
+		sound.m_type = SoundType::MemoryInternal;
+		sound.m_tag = finalTag;
+		sound.m_valid = true;
+		sound.m_path = path;
+
+		sound.loadFromFile(path);
+		return sound;
+	}
+
+	Sound Sound::External(std::span<const std::byte> externalData, const std::string& tag) {
+		Sound sound;
+		sound.m_type = SoundType::MemoryExternal;
+		sound.m_tag = tag;
+		sound.m_valid = true;
+
+		if (externalData.empty()) {
+			SIREN_LOG_ERROR("Sound::External Invalid buffer (empty)");
+			sound.m_valid = false;
+		}
+		else {
+			sound.m_dataView = externalData;
+		}
+
+		return sound;
+	}
+
+	bool Sound::isValid() const {
+		return m_valid;
+	}
+
+	Sound::SoundType Sound::getType() const {
+		return m_type;
+	}
+
+	const std::string& Sound::getTag() const {
+		return m_tag;
+	}
+
+	const std::string& Sound::getPath() const {
+		return m_path;
+	}
+
+	std::span<const std::byte> Sound::getData() const {
+		return m_dataView;
 	}
 
 	void Sound::loadFromFile(const std::string& path) {
@@ -45,52 +109,16 @@ namespace siren {
 		return;
 	}
 
-	Sound Sound::Stream(const std::string& path, const std::string& tag) {
-		std::string finalTag = tag;
-		if (tag.empty()) {
-			finalTag = std::filesystem::path(path).filename().string();
-		}
-		Sound sound(SoundType::Stream, finalTag);
-		sound.m_path = path;
-
-		if (!std::filesystem::exists(path)) {
-			SIREN_LOG_ERROR("Sound::Stream Failed to find file: " << path);
-			sound.m_valid = false;
-		}
-
-		return sound;
-	}
-
-	Sound Sound::Internal(const std::string& path, const std::string& tag) {
-		std::string finalTag = tag.empty() ? path : tag;
-		Sound sound(SoundType::MemoryInternal, finalTag);
-		sound.m_path = path;
-
-		sound.loadFromFile(path);
-		return sound;
-	}
-
-	Sound Sound::External(std::span<const std::byte> externalData, const std::string& tag) {
-		Sound sound(SoundType::MemoryExternal, tag);
-
-		if (externalData.empty()) {
-			SIREN_LOG_ERROR("Sound::External Invalid buffer (empty)");
-			sound.m_valid = false;
-		}
-		else {
-			sound.m_dataView = externalData;
-		}
-
-		return sound;
-	}
-
 	Result<std::unique_ptr<DataSource>> Sound::createDataSource() const {
 		if (!m_valid) {
 			return ResultCode::InvalidSound;
 		}
 
 		std::unique_ptr<DataSource> source = nullptr;
-		if (m_type == SoundType::MemoryInternal) {
+		if (m_type == SoundType::Stream) {
+			source = std::make_unique<FileDataSource>(m_path);
+		}
+		else if (m_type == SoundType::MemoryInternal) {
 			// MemorySource shares data ownership
 			source = std::make_unique<MemoryDataSource>(m_internalData);
 		}
@@ -98,9 +126,7 @@ namespace siren {
 			// MemorySource does not share data ownership (user controlled)
 			source = std::make_unique<MemoryDataSource>(m_dataView);
 		}
-		else if (m_type == SoundType::Stream) {
-			source = std::make_unique<FileDataSource>(m_path);
-		}
+
 
 		if (!source) {
 			return ResultCode::GenericError;
@@ -108,25 +134,4 @@ namespace siren {
 
 		return source;
 	}
-
-	bool Sound::isValid() const {
-		return m_valid;
-	}
-
-	SoundType Sound::getType() const {
-		return m_type;
-	}
-
-	const std::string& Sound::getTag() const {
-		return m_tag;
-	}
-
-	const std::string& Sound::getPath() const {
-		return m_path;
-	}
-
-	std::span<const std::byte> Sound::getData() const {
-		return m_dataView;
-	}
-	
 }
