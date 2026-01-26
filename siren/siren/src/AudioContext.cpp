@@ -9,82 +9,6 @@
 
 namespace siren {
 
-	void AudioContext::data_callback(ma_device* pDevice, void* pOutput, const void* pInput, uint32_t frameCount) {
-		AudioContext* context = static_cast<AudioContext*>(pDevice->pUserData);
-		if (!context) return;
-
-		float* outBuffer = static_cast<float*>(pOutput);
-		size_t channels = static_cast<size_t>(pDevice->playback.channels);
-		size_t requestedSamples = frameCount * channels;
-
-		// Prepare final output buffer and bus buffers
-		std::fill_n(outBuffer, requestedSamples, 0.0f); // Silence baseline
-
-		// Handle flush request
-		if (context->m_flushRequested.load(std::memory_order_acquire)) {
-			context->m_voicesAudio.clear();
-
-			context->m_flushRequested.store(false, std::memory_order_release);
-			context->m_flushCompleted.store(true, std::memory_order_release);
-
-			return;
-		}
-
-		// Process pending voices
-		PendingVoiceNode* inbox = context->m_inboxHead.exchange(nullptr, std::memory_order_acq_rel); // Get inbox
-		while (inbox) {
-			std::unique_ptr<PendingVoiceNode> node(inbox);
-			inbox = node->next;
-			context->m_voicesAudio.push_back(std::move(node->voice));
-		}
-		
-		std::shared_ptr<BusList> buses = context->m_busesAudio.load(std::memory_order_acquire);
-		for (auto& bus : *buses) {
-			bus->prepare(frameCount, channels);
-		}
-
-		auto& voices = context->m_voicesAudio;
-		for (auto it = voices.begin(); it != voices.end(); ) {
-			auto& voice = *it;
-
-			bool alive = voice->mix(); // Mix voice into bus buffer
-			if (!alive) {
-				it = voices.erase(it); // TODO: Queue deletion to be done in update()
-			}
-			else {
-				it++;
-			}
-		}
-				
-		std::shared_ptr<AudioBus> masterBus = context->m_masterBus;
-		if (!masterBus) return;
-		masterBus->prepare(frameCount, channels);
-
-		for (auto& bus : *buses) {
-			bus->process();
-			size_t limit = (std::min)(bus->m_buffer.size(), masterBus->m_buffer.size());
-			for (size_t i = 0; i < limit; i++) {
-				masterBus->m_buffer[i] += bus->m_buffer[i];
-			}
-		}
-
-		masterBus->process();
-		for (size_t i = 0; i < requestedSamples; i++) {
-			outBuffer[i] = std::clamp(masterBus->m_buffer[i], -1.0f, 1.0f);
-		}
-	}
-
-	void AudioContext::refreshBusesAudio() {
-		auto snapshot = std::make_shared<BusList>();
-		snapshot->reserve(m_busesMain.size());
-
-		for (const auto& [name, bus] : m_busesMain) {
-			snapshot->push_back(bus);
-		}
-
-		m_busesAudio.store(snapshot, std::memory_order_relaxed);
-	}
-
 	AudioContext::AudioContext() {
 		m_device = std::make_unique<ma_device>();
 		m_masterBus = std::make_unique<AudioBus>();
@@ -181,7 +105,7 @@ namespace siren {
 				it = m_voicesMain.erase(it);
 			}
 			else {
-				voice->update(deltaTime, listener, m_globalDopplerScale);
+				voice->update(deltaTime, listener, m_globalDopplerFactor);
 				it++;
 			}
 		}
@@ -252,12 +176,12 @@ namespace siren {
 		m_defaultVoiceVelocitySmoothing = value;
 	}
 
-	void AudioContext::setGlobalDopplerScale(float value) {
-		m_globalDopplerScale = value;
+	void AudioContext::setGlobalDopplerFactor(float value) {
+		m_globalDopplerFactor = value;
 	}
 
-	float AudioContext::getGlobalDopplerScale() const {
-		return m_globalDopplerScale;
+	float AudioContext::getGlobalDopplerFactor() const {
+		return m_globalDopplerFactor;
 	}
 
 	ListenerData AudioContext::getListener() const {
@@ -379,5 +303,81 @@ namespace siren {
 		}
 
 		return createVoice(sound, bus);
+	}
+
+	void AudioContext::data_callback(ma_device* pDevice, void* pOutput, const void* pInput, uint32_t frameCount) {
+		AudioContext* context = static_cast<AudioContext*>(pDevice->pUserData);
+		if (!context) return;
+
+		float* outBuffer = static_cast<float*>(pOutput);
+		size_t channels = static_cast<size_t>(pDevice->playback.channels);
+		size_t requestedSamples = frameCount * channels;
+
+		// Prepare final output buffer and bus buffers
+		std::fill_n(outBuffer, requestedSamples, 0.0f); // Silence baseline
+
+		// Handle flush request
+		if (context->m_flushRequested.load(std::memory_order_acquire)) {
+			context->m_voicesAudio.clear();
+
+			context->m_flushRequested.store(false, std::memory_order_release);
+			context->m_flushCompleted.store(true, std::memory_order_release);
+
+			return;
+		}
+
+		// Process pending voices
+		PendingVoiceNode* inbox = context->m_inboxHead.exchange(nullptr, std::memory_order_acq_rel); // Get inbox
+		while (inbox) {
+			std::unique_ptr<PendingVoiceNode> node(inbox);
+			inbox = node->next;
+			context->m_voicesAudio.push_back(std::move(node->voice));
+		}
+
+		std::shared_ptr<BusList> buses = context->m_busesAudio.load(std::memory_order_acquire);
+		for (auto& bus : *buses) {
+			bus->prepare(frameCount, channels);
+		}
+
+		auto& voices = context->m_voicesAudio;
+		for (auto it = voices.begin(); it != voices.end(); ) {
+			auto& voice = *it;
+
+			bool alive = voice->mix(); // Mix voice into bus buffer
+			if (!alive) {
+				it = voices.erase(it); // TODO: Queue deletion to be done in update()
+			}
+			else {
+				it++;
+			}
+		}
+
+		std::shared_ptr<AudioBus> masterBus = context->m_masterBus;
+		if (!masterBus) return;
+		masterBus->prepare(frameCount, channels);
+
+		for (auto& bus : *buses) {
+			bus->process();
+			size_t limit = (std::min)(bus->m_buffer.size(), masterBus->m_buffer.size());
+			for (size_t i = 0; i < limit; i++) {
+				masterBus->m_buffer[i] += bus->m_buffer[i];
+			}
+		}
+
+		masterBus->process();
+		for (size_t i = 0; i < requestedSamples; i++) {
+			outBuffer[i] = std::clamp(masterBus->m_buffer[i], -1.0f, 1.0f);
+		}
+	}
+
+	void AudioContext::refreshBusesAudio() {
+		auto snapshot = std::make_shared<BusList>();
+		snapshot->reserve(m_busesMain.size());
+
+		for (const auto& [name, bus] : m_busesMain) {
+			snapshot->push_back(bus);
+		}
+
+		m_busesAudio.store(snapshot, std::memory_order_relaxed);
 	}
 }
