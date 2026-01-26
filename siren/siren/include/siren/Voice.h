@@ -215,8 +215,11 @@ namespace siren {
 
 		/// @brief Sets the smoothing factor for automatic velocity approximation (defaults to @c 10.0)
 		/// 
-		/// Used when velocity is not manually set. Higher values result in smoother pitch changes
-		/// but may lag slightly behind sudden direction changes.
+		/// Used when velocity is not manually set.
+		/// 
+		/// Lower values e.g. @c 2.0 means more smoothing (can sound laggy).
+		/// 
+		/// Higher values e.g. @c 20.0 means less smoothing (can sound jittery).
 		/// @param value The smoothing factor.
 		void setVelocitySmoothing(float value);
 
@@ -272,7 +275,7 @@ namespace siren {
 		/// @param deltaTime Frame time difference
 		/// @param listener All necessary information about the listener
 		/// @param globalDopplerScale The global doppler scale used to adjust doppler effect pitch impact
-		void update(float deltaTime, const ListenerData& listener, float globalDopplerScale);
+		void update(float deltaTime, const ListenerData& listener, float globalDopplerFactor);
 
 		/// @return The current state of the Voice.
 		VoiceState getState();

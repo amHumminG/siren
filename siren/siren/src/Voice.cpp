@@ -397,7 +397,7 @@ namespace siren {
 		return stillAlive;
 	}
 
-	void Voice::update(float deltaTime, const ListenerData& listener, float globalDopplerScale) {
+	void Voice::update(float deltaTime, const ListenerData& listener, float globalDopplerFactor) {
 		float volume = m_volume;
 		float pan = m_pan;
 
@@ -450,7 +450,7 @@ namespace siren {
 					float listenerVel = listener.velocity * listenerToEmitterNormalized;
 					float emitterVel = m_velocity * listenerToEmitterNormalized;
 
-					float dopplerStrenght = m_dopplerFactor * globalDopplerScale;
+					float dopplerStrenght = m_dopplerFactor * globalDopplerFactor;
 					float numerator = SPEED_OF_SOUND + (listenerVel * dopplerStrenght);
 					float denominator = SPEED_OF_SOUND + (emitterVel * dopplerStrenght);
 					float dopplerPitch = numerator / std::max(denominator, 0.1f);
