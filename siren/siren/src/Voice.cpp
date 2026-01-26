@@ -5,7 +5,7 @@
 #include <string>
 #include <array>
 #include <cmath>
-#include "siren/SirenMath.h"
+#include <thread>
 
 #ifndef M_PI_2
 #define M_PI_2 1.57079632679489661923
@@ -14,6 +14,188 @@
 constexpr float SPEED_OF_SOUND = 343.0f; // m/s
 
 namespace siren {
+
+	void Voice::play() {
+		if (m_decoder) {
+			if (m_state.load(std::memory_order_relaxed) == VoiceState::Destroyed) {
+				SIREN_LOG_ERROR("Voice::play() Unable to play destroyed voice");
+				return;
+			}
+
+			if (!isPlaying()) {
+				m_isReusable.store(true, std::memory_order_relaxed);
+				m_snapGainRequested.store(true, std::memory_order_relaxed);
+				m_state.store(VoiceState::Playing, std::memory_order_release);
+			}
+		}
+	}
+
+	void Voice::playOneShot() {
+		if (m_decoder) {
+			if (m_state.load(std::memory_order_relaxed) == VoiceState::Destroyed) {
+				SIREN_LOG_ERROR("Voice::playOneShot() Unable to play destroyed voice");
+				return;
+			}
+
+			m_isReusable.store(false, std::memory_order_relaxed);
+			m_isLooping.store(false, std::memory_order_relaxed);
+			m_snapGainRequested.store(true, std::memory_order_relaxed);
+			m_seekFrame.store(0, std::memory_order_relaxed);
+			m_state.store(VoiceState::Playing, std::memory_order_release);
+		}
+	}
+
+	bool Voice::isPlaying() const {
+		return m_state.load(std::memory_order_relaxed) == VoiceState::Playing;
+	}
+
+	void Voice::pause() {
+		m_state.store(VoiceState::Paused, std::memory_order_release);
+	}
+
+	bool Voice::isPaused() const {
+		return m_state.load(std::memory_order_relaxed) == VoiceState::Paused;
+	}
+
+	void Voice::stop() {
+		if (!m_isReusable.load(std::memory_order_relaxed)) {
+			m_state.store(VoiceState::Destroyed);
+		}
+		else {
+			if (m_decoder) m_seekFrame.store(0, std::memory_order_relaxed);
+			m_state.store(VoiceState::Inactive, std::memory_order_release);
+		}
+	}
+
+	bool Voice::isFinished() const {
+		VoiceState state = m_state.load(std::memory_order_relaxed);
+		return state == VoiceState::Inactive || state == VoiceState::Destroyed;
+	}
+
+	void Voice::seek(float timePoint) {
+		// TODO: Check if timePoint is out of bounds
+		// This will require that we store totalFrames in voice as a memeber variable
+		if (m_state.load(std::memory_order_relaxed) == VoiceState::Destroyed) {
+			return;
+		}
+		int64_t frame = static_cast<int64_t>(timePoint * m_sampleRate);
+		m_seekFrame.store(frame, std::memory_order_relaxed);
+	}
+
+	void Voice::destroy() {
+		m_state.store(VoiceState::Destroyed, std::memory_order_seq_cst);
+
+		while (m_isMixing.load(std::memory_order_acquire)) {
+			std::this_thread::yield();
+		}
+	}
+
+	void Voice::setReusable(bool value) {
+		m_isReusable.store(value, std::memory_order_relaxed);
+	}
+
+	bool Voice::isReusable() const {
+		return m_isReusable.load(std::memory_order_relaxed);
+	}
+
+	void Voice::setGlobal() {
+		m_mode = VoiceMode::Global;
+		m_pan = 0.0f; // Reset pan
+	}
+
+	void Voice::setBus(std::shared_ptr<AudioBus> bus) {
+		m_bus.store(bus, std::memory_order_release);
+	}
+
+	void Voice::setVolume(float value) {
+		m_volume = std::clamp(value, 0.0f, 1.0f);
+	}
+
+	float Voice::getVolume() const {
+		return m_volume;
+	}
+
+	void Voice::setPan(float value) {
+		m_pan = std::clamp(value, -1.0f, 1.0f);
+	}
+
+	float Voice::getPan() const {
+		return m_pan;
+	}
+
+	void Voice::setLooping(bool value) {
+		m_isLooping.store(value, std::memory_order_relaxed);
+	}
+
+	bool Voice::isLooping() const {
+		return m_isLooping.load(std::memory_order_relaxed);
+	}
+
+	void Voice::setPitch(float value) {
+		m_pitch.store(std::clamp(value, 0.1f, 4.0f), std::memory_order_relaxed);
+	}
+
+	float Voice::getPitch() const {
+		return m_pitch.load(std::memory_order_relaxed);
+	}
+
+	void Voice::setDopplerEffect(bool value) {
+		m_dopplerEffect = value;
+	}
+
+	void Voice::setDopplerFactor(float value) {
+		m_dopplerFactor = value;
+	}
+
+	float Voice::getDopplerFactor() const {
+		return m_dopplerFactor;
+	}
+
+	void Voice::setPosition(const Vector3& pos) {
+		m_position = pos;
+		m_mode = VoiceMode::Spatial;
+	}
+
+	void Voice::setVelocity(const Vector3& vel) {
+		m_velocity = vel;
+		m_velocitySetThisFrame = true;
+	}
+
+	Vector3 Voice::getVelocity() const {
+		return m_velocity;
+	}
+
+	void Voice::setVelocitySmoothing(float value) {
+		m_velocitySmoothing = value;
+	}
+
+	void Voice::setDistance(float minDistance, float maxDistance) {
+		if (minDistance < 0.1f) {
+			minDistance = 0.1f;
+		}
+		if (maxDistance < 0.1f || minDistance > maxDistance) {
+			maxDistance = minDistance + 0.1f;
+		}
+
+		m_minDistance = minDistance;
+		m_maxDistance = maxDistance;
+	}
+
+	float Voice::getMinDistance() {
+		return m_minDistance;
+	}
+
+	float Voice::getMaxDistance() {
+		return m_maxDistance;
+	}
+
+	void Voice::setTag(const std::string& tag) {
+		m_tag = tag;
+	}
+
+	const std::string& Voice::getTag() {
+		return m_tag;
+	}
 
 	void Voice::attachDecoder(std::unique_ptr<Decoder> decoder) {
 		m_sampleRate = decoder->getSampleRate();
@@ -49,13 +231,13 @@ namespace siren {
 	}
 
 	bool Voice::mix() noexcept {
-		if (m_state.load(std::memory_order_relaxed) == VoiceState::Dead) {
+		if (m_state.load(std::memory_order_relaxed) == VoiceState::Destroyed) {
 			return false; // Dead
 		}
 
 		// Flag the main thread that voice is mixing and voice can not be destroyed until done
 		m_isMixing.store(true, std::memory_order_seq_cst);
-		if (m_state.load(std::memory_order_seq_cst) == VoiceState::Dead) {
+		if (m_state.load(std::memory_order_seq_cst) == VoiceState::Destroyed) {
 			m_isMixing.store(false, std::memory_order_acquire);
 			return false;
 		}
@@ -195,7 +377,7 @@ namespace siren {
 
 				if (!continuePlayback && framesDecoded < framesToDecode) {
 					if (!m_isReusable.load(std::memory_order_relaxed)) {
-						m_state.store(VoiceState::Dead, std::memory_order_release);
+						m_state.store(VoiceState::Destroyed, std::memory_order_release);
 						stillAlive = false;
 					}
 					else {
@@ -205,7 +387,7 @@ namespace siren {
 				}
 			}
 
-			if (m_state.load(std::memory_order_relaxed) == VoiceState::Dead) {
+			if (m_state.load(std::memory_order_relaxed) == VoiceState::Destroyed) {
 				stillAlive = false;
 			}
 		}
@@ -226,7 +408,7 @@ namespace siren {
 			float distance = (m_position - listener.position).length();
 			float distanceClamped = std::clamp(distance, m_minDistance, m_maxDistance);
 			float fraction = (distanceClamped - m_minDistance) / (m_maxDistance - m_minDistance);
-			volume = 1.0f - fraction;
+			volume = volume - fraction;
 
 			// SPATIAL PANNING
 			Vector3 listenerToEmitterNormalized = normalize(listenerToEmitter);
@@ -290,189 +472,7 @@ namespace siren {
 		m_targetGainR.store(gainR, std::memory_order_relaxed);
 	}
 
-	void Voice::play() {
-		if (m_decoder) {
-			if (m_state.load(std::memory_order_relaxed) == VoiceState::Dead) {
-				SIREN_LOG_ERROR("Voice::play() Unable to play dead voice");
-				return;
-			}
-
-			if (!isPlaying()) {
-				m_isReusable.store(true, std::memory_order_relaxed);
-				m_snapGainRequested.store(true, std::memory_order_relaxed);
-				m_state.store(VoiceState::Playing, std::memory_order_release);
-			}
-		}
-	}
-
-	void Voice::playOneShot() {
-		if (m_decoder) {
-			if (m_state.load(std::memory_order_relaxed) == VoiceState::Dead) {
-				SIREN_LOG_ERROR("Voice::playOneShot() Unable to play dead voice");
-				return;
-			}
-
-			m_isReusable.store(false, std::memory_order_relaxed);
-			m_isLooping.store(false, std::memory_order_relaxed);
-			m_snapGainRequested.store(true, std::memory_order_relaxed);
-			m_seekFrame.store(0, std::memory_order_relaxed);
-			m_state.store(VoiceState::Playing, std::memory_order_release);
-		}
-	}
-
-	void Voice::pause() {
-		m_state.store(VoiceState::Paused, std::memory_order_release);
-	}
-
-	void Voice::stop() {
-		if (!m_isReusable.load(std::memory_order_relaxed)) {
-			m_state.store(VoiceState::Dead);
-		}
-		else {
-			if (m_decoder) m_seekFrame.store(0, std::memory_order_relaxed);
-			m_state.store(VoiceState::Inactive, std::memory_order_release);
-		}
-	}
-
-	void Voice::setReusable(bool value) {
-		m_isReusable.store(value, std::memory_order_relaxed);
-	}
-
-	void Voice::destroy() {
-		m_state.store(VoiceState::Dead, std::memory_order_seq_cst);
-
-		while (m_isMixing.load(std::memory_order_acquire)) {
-			std::this_thread::yield();
-		}
-	}
-
-	void Voice::setBus(std::shared_ptr<AudioBus> bus) {
-		m_bus.store(bus, std::memory_order_release);
-	}
-
-	void Voice::setPan(float value) {
-		m_pan = std::clamp(value, -1.0f, 1.0f);
-	}
-
-	void Voice::setVolume(float value) {
-		m_volume = std::clamp(value, 0.0f, 1.0f);
-	}
-
-	void Voice::setPitch(float value) {
-		m_pitch.store(std::clamp(value, 0.1f, 4.0f), std::memory_order_relaxed);
-	}
-
-	void Voice::setDopplerEffect(bool value) {
-		m_dopplerEffect = value;
-	}
-
-	void Voice::setDopplerFactor(float value) {
-		m_dopplerFactor = value;
-	}
-
-	void Voice::setLooping(bool value) {
-		m_isLooping.store(value, std::memory_order_relaxed);
-	}
-
-	void Voice::setTag(const std::string& tag) {
-		m_tag = tag;
-	}
-
-	const std::string& Voice::getTag() {
-		return m_tag;
-	}
-
-	void Voice::seek(float timePoint) {
-		// TODO: Check if timePoint is out of bounds
-		// This will require that we store totalFrames in voice as a memeber variable
-		if (m_state.load(std::memory_order_relaxed) == VoiceState::Dead) {
-			return;
-		}
-		int64_t frame = static_cast<int64_t>(timePoint * m_sampleRate);
-		m_seekFrame.store(frame, std::memory_order_relaxed);
-	}
-
-	VoiceState Voice::getState() {
+	Voice::VoiceState Voice::getState() {
 		return m_state.load(std::memory_order_relaxed);
-	}
-
-	float Voice::getPan() const {
-		return m_pan;
-	}
-
-	float Voice::getVolume() const {
-		return m_volume;
-	}
-
-	float Voice::getPitch() const {
-		return m_pitch.load(std::memory_order_relaxed);
-	}
-
-	float Voice::getDopplerFactor() const {
-		return m_dopplerFactor;
-	}
-
-	bool Voice::isLooping() const {
-		return m_isLooping.load(std::memory_order_relaxed);
-	}
-
-	bool Voice::isPlaying() const {
-		return m_state.load(std::memory_order_relaxed) == VoiceState::Playing;
-	}
-
-	bool Voice::isPaused() const {
-		return m_state.load(std::memory_order_relaxed) == VoiceState::Paused;
-	}
-
-	bool Voice::isFinished() const {
-		VoiceState state = m_state.load(std::memory_order_relaxed);
-		return state == VoiceState::Inactive || state == VoiceState::Dead;
-	}
-
-	bool Voice::isReusable() const {
-		return m_isReusable.load(std::memory_order_relaxed);
-	}
-
-	void Voice::setPosition(const Vector3& pos) {
-		m_position = pos;
-		m_mode = VoiceMode::Spatial;
-	}
-
-	void Voice::setVelocity(const Vector3& vel) {
-		m_velocity = vel;
-		m_velocitySetThisFrame = true;
-	}
-
-	void Voice::setVelocitySmoothing(float value) {
-		m_velocitySmoothing = value;
-	}
-
-	Vector3 Voice::getVelocity() const {
-		return m_velocity;
-	}
-
-	void Voice::setGlobal() {
-		m_mode = VoiceMode::Global;
-		m_pan = 0.0f; // Reset pan
-	}
-
-	void Voice::setDistance(float minDistance, float maxDistance) {
-		if (minDistance < 0.1f) {
-			minDistance = 0.1f;
-		}
-		if (maxDistance < 0.1f || minDistance > maxDistance) {
-			maxDistance = minDistance + 0.1f;
-		}
-
-		m_minDistance = minDistance;
-		m_maxDistance = maxDistance;
-	}
-
-	float Voice::getMinDistance() {
-		return m_minDistance;
-	}
-
-	float Voice::getMaxDistance() {
-		return m_maxDistance;
 	}
 }

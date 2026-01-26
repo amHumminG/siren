@@ -177,7 +177,7 @@ namespace siren {
 		for (auto it = m_voicesMain.begin(); it != m_voicesMain.end(); ) {
 			auto& voice = *it;
 
-			if (voice->getState() == VoiceState::Dead) {
+			if (voice->getState() == Voice::VoiceState::Destroyed) {
 				it = m_voicesMain.erase(it);
 			}
 			else {
