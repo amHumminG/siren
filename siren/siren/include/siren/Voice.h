@@ -117,7 +117,7 @@ namespace siren {
 		/// In @b Global mode, the Voice has no position; volume and pan are controlled manually
 		/// via setVolume() and setPan().
 		/// 
-		/// This also resets the pan to @c 0.0 (center)
+		/// @note This also resets the pan to @c 0.0 (center).
 		void setGlobal();
 
 		/// @brief Routes the voice output to a specific AudioBus.
@@ -130,7 +130,7 @@ namespace siren {
 		/// @brief Sets the output volume.
 		/// 
 		/// The value is clamped between @c 0.0 (silence) and @c 1.0 (full volume).
-		/// @param value The volume
+		/// @param value The volume.
 		void setVolume(float value);
 
 		/// @return The current volume (range: [0.0, 1.0]).
