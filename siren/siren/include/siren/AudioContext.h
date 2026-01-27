@@ -92,13 +92,16 @@ namespace siren {
 
 		/// @brief Sets the default velocity smoothing factor for newly created Voices.
 		/// 
-		/// New Voices will initialize their own smoothing value to this.
-		/// 
 		/// Lower values e.g. @c 2.0 means more smoothing (can sound laggy).
 		/// 
 		/// Higher values e.g. @c 20.0 means less smoothing (can sound jittery).
 		/// @param value Smoothing factor. Defaults to @c 10.0
-		void setDefaultVoiceVelocitySmoothing(float value);
+		void setDefaultVelocitySmoothing(float value);
+
+		/// @brief Sets the default attenuation model for newly created Voices.
+		/// 
+		/// @param model Attenuation model. Defaults to Linear.
+		void setDefaultAttenuationModel(Voice::AttenuationModel model);
 
 		/// @brief Sets the global multiplier for all Doppler Effects.
 		///
@@ -204,7 +207,9 @@ namespace siren {
 		mutable std::mutex m_listenerMutex; // Mutable for use in getListener()
 		
 		float m_listenerVelocitySmoothing = 20.0f;
-		float m_defaultVoiceVelocitySmoothing = 10.0f; // Default set to all new voices
+		float m_defaultVelocitySmoothing = 10.0f; // Default set to all new voices
+
+		Voice::AttenuationModel m_defaultAttenuationModel = Voice::AttenuationModel::Linear;
 
 		float m_globalDopplerFactor = 1.0f;
 	};

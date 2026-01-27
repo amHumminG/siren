@@ -189,6 +189,10 @@ namespace siren {
 		return m_maxDistance;
 	}
 
+	void Voice::setAttenuationModel(AttenuationModel model) {
+		m_attenuationModel = model;
+	}
+
 	void Voice::setTag(const std::string& tag) {
 		m_tag = tag;
 	}
@@ -403,12 +407,37 @@ namespace siren {
 
 		if (m_mode == VoiceMode::Spatial) {
 			// DISTANCE BASED VOLUME
-			// TODO: Use inverse square law to calculate realistic volume dropoff
+			float attenuation = 1.0f;
 			Vector3 listenerToEmitter = m_position - listener.position;
-			float distance = (m_position - listener.position).length();
-			float distanceClamped = std::clamp(distance, m_minDistance, m_maxDistance);
-			float fraction = (distanceClamped - m_minDistance) / (m_maxDistance - m_minDistance);
-			volume = volume - fraction;
+			float distance = listenerToEmitter.length();
+
+			if (m_attenuationModel == AttenuationModel::None) {
+				attenuation = 1.0f;
+			}
+			else if (distance > m_maxDistance) {
+				attenuation = 0.0f;
+			}
+			else if (distance <= m_minDistance) {
+				attenuation = 1.0f;
+			}
+			else {
+				if (m_attenuationModel == AttenuationModel::Linear) {
+					float t = (distance - m_minDistance) / (m_maxDistance - m_minDistance);
+					attenuation = 1.0f - t;
+				}
+				else if (m_attenuationModel == AttenuationModel::Inverse) {
+					float rolloff = 1.0f; // TODO: Make this modifiable
+					attenuation = m_minDistance / (m_minDistance + rolloff * (distance - m_minDistance));
+				}
+				else if (m_attenuationModel == AttenuationModel::Exponential) {
+					// TODO: Check if this actually sounds ok
+					float t = (distance - m_minDistance) / (m_maxDistance - m_minDistance); // % of maxDist
+					float smoothT = 1.0f - t;
+					attenuation = smoothT * smoothT;
+				}
+			}
+
+			volume *= attenuation;
 
 			// SPATIAL PANNING
 			Vector3 listenerToEmitterNormalized = normalize(listenerToEmitter);

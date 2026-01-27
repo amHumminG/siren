@@ -9,7 +9,6 @@
 
 namespace siren {
 
-	class AudioContext;
 	class AudioBus;
 
 	class Voice {
@@ -24,6 +23,13 @@ namespace siren {
 		enum class VoiceMode {
 			Global, // Manual pan
 			Spatial // Automatic pan and volume based on position and listener
+		};
+
+		enum class AttenuationModel {
+			None,
+			Linear,
+			Inverse,
+			Exponential
 		};
 
 		Voice() = default;
@@ -239,6 +245,8 @@ namespace siren {
 		/// @return The maximun distance (silence radius) for spatial attenuation.
 		float getMaxDistance();
 
+		void setAttenuationModel(AttenuationModel model);
+
 		/// @brief Assigns a custom string tag for identification of this Voice.
 		/// 
 		/// Defaults to the tag of the Sound that the Voice was created with.
@@ -319,5 +327,7 @@ namespace siren {
 		Vector3 m_velocity; // The velocity of the voice (will be used if provided for that frame)
 		bool m_velocitySetThisFrame = false; // True if velocity has been manualy set for that frame
 		float m_velocitySmoothing = 10.0f;
+
+		AttenuationModel m_attenuationModel = AttenuationModel::Linear;
 	};
 }

@@ -172,8 +172,12 @@ namespace siren {
 		m_listenerVelocitySmoothing = value;
 	}
 
-	void AudioContext::setDefaultVoiceVelocitySmoothing(float value) {
-		m_defaultVoiceVelocitySmoothing = value;
+	void AudioContext::setDefaultVelocitySmoothing(float value) {
+		m_defaultVelocitySmoothing = value;
+	}
+
+	void AudioContext::setDefaultAttenuationModel(Voice::AttenuationModel model) {
+		m_defaultAttenuationModel = model;
 	}
 
 	void AudioContext::setGlobalDopplerFactor(float value) {
@@ -254,7 +258,8 @@ namespace siren {
 
 		voice->attachDecoder(std::move(decoderResult.value()));
 		voice->setTag(sound.getTag());
-		voice->setVelocitySmoothing(m_defaultVoiceVelocitySmoothing);
+		voice->setVelocitySmoothing(m_defaultVelocitySmoothing);
+		voice->setAttenuationModel(m_defaultAttenuationModel);
 		if (!voice->prepare()) {
 			SIREN_LOG_ERROR("AudioContext::createVoice() Failed to prepare voice");
 			return nullptr;
