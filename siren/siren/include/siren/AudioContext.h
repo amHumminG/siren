@@ -12,12 +12,13 @@ struct ma_device;
 
 namespace siren {
 
+	enum class CoordinateSystem {
+		RightHanded,
+		LeftHanded
+	};
+
 	class AudioContext {
 	public:
-		enum class CoordinateSystem {
-			RightHanded,
-			LeftHanded
-		};
 
 		AudioContext();
 		~AudioContext();

@@ -20,6 +20,9 @@ namespace siren {
 		float getVolume();
 
 	private:
+		friend class AudioContext;
+		friend class Voice;
+
 		/// @brief Prepares the bus buffer to be mixed
 		/// @param frameCount The amount of frames requested by the audio callback
 		/// @param channelCount The amount of channels of the audio output
