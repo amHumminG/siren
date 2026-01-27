@@ -7,6 +7,14 @@ namespace siren {
 		m_buffer.reserve(MAX_BUFFER_SIZE);
 	}
 
+	void AudioBus::setVolume(float value) {
+		m_volume.store(std::clamp(value, 0.0f, 1.0f), std::memory_order_relaxed);
+	}
+
+	float AudioBus::getVolume() {
+		return m_volume.load(std::memory_order_relaxed);
+	}
+
 	void AudioBus::prepare(size_t frameCount, size_t channelCount) {
 		size_t requestedSize = frameCount * channelCount;
 
@@ -35,16 +43,8 @@ namespace siren {
 				m_currentGain += (diff > 0) ? SLEW_RATE : -SLEW_RATE;
 			}
 
-			m_buffer[i]		*= m_currentGain;
-			m_buffer[i + 1]	*= m_currentGain;
+			m_buffer[i] *= m_currentGain;
+			m_buffer[i + 1] *= m_currentGain;
 		}
-	}
-
-	void AudioBus::setVolume(float value) {
-		m_volume.store(std::clamp(value, 0.0f, 1.0f), std::memory_order_relaxed);
-	}
-
-	float AudioBus::getVolume() {
-		return m_volume.load(std::memory_order_relaxed);
 	}
 }
