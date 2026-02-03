@@ -247,6 +247,10 @@ namespace siren {
 
 		void setAttenuationModel(AttenuationModel model);
 
+		void setRolloff(float value);
+
+		float getRolloff();
+
 		/// @brief Assigns a custom string tag for identification of this Voice.
 		/// 
 		/// Defaults to the tag of the Sound that the Voice was created with.
@@ -329,5 +333,6 @@ namespace siren {
 		float m_velocitySmoothing = 10.0f;
 
 		AttenuationModel m_attenuationModel = AttenuationModel::Linear;
+		float m_rolloff = 1.0f;
 	};
 }

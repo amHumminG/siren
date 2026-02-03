@@ -193,6 +193,14 @@ namespace siren {
 		m_attenuationModel = model;
 	}
 
+	void Voice::setRolloff(float value) {
+		m_rolloff = std::max(0.0f, value);
+	}
+
+	float Voice::getRolloff() {
+		return m_rolloff;
+	}
+
 	void Voice::setTag(const std::string& tag) {
 		m_tag = tag;
 	}
@@ -426,8 +434,7 @@ namespace siren {
 					attenuation = 1.0f - t;
 				}
 				else if (m_attenuationModel == AttenuationModel::Inverse) {
-					float rolloff = 1.0f; // TODO: Make this modifiable
-					attenuation = m_minDistance / (m_minDistance + rolloff * (distance - m_minDistance));
+					attenuation = m_minDistance / (m_minDistance + m_rolloff * (distance - m_minDistance));
 				}
 				else if (m_attenuationModel == AttenuationModel::Exponential) {
 					// TODO: Check if this actually sounds ok
