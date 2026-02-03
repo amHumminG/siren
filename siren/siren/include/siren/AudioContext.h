@@ -158,7 +158,7 @@ namespace siren {
 		/// @param sound The Sound asset to use as a source. Must be valid.
 		/// @param bus The Audiobus to route output audio to. Defaults to Master if @c nullptr.
 		/// @return A shared pointer to the new Voice, or @c nullptr if creation failed.
-		std::shared_ptr<Voice> createVoice(const Sound& sound, std::shared_ptr<AudioBus> bus = nullptr);
+		std::shared_ptr<Voice> createVoice(const Sound& sound, const std::shared_ptr<AudioBus> bus = nullptr);
 
 		/// @brief Convenience alternative for Voice instance creation.
 		/// @param sound The Sound asset to use as a source. Must be valid.

@@ -231,7 +231,7 @@ namespace siren {
 		return it->second;
 	}
 
-	std::shared_ptr<Voice> AudioContext::createVoice(const Sound& sound, std::shared_ptr<AudioBus> bus) {
+	std::shared_ptr<Voice> AudioContext::createVoice(const Sound& sound, const std::shared_ptr<AudioBus> bus) {
 		if (!sound.isValid()) {
 			SIREN_LOG_ERROR("AudioContext::createVoice() Invalid sound");
 			return nullptr;
@@ -264,15 +264,16 @@ namespace siren {
 			SIREN_LOG_ERROR("AudioContext::createVoice() Failed to prepare voice");
 			return nullptr;
 		}
-
-		if (bus == nullptr) {
-			bus = m_masterBus;
+		
+		auto voiceBus = bus;
+		if (voiceBus == nullptr) {
+			voiceBus = m_masterBus;
 		}
-		if (bus == nullptr) { // Default to master bus
+		if (voiceBus == nullptr) { // Default to master bus
 			SIREN_LOG_ERROR("AudioContext::createVoice() Master bus does not exist");
 			return nullptr;
 		}
-		voice->setBus(bus);
+		voice->setBus(voiceBus);
 
 		// DEBUG
 		size_t seconds = totalFrames / sampleRate;
