@@ -371,7 +371,7 @@ namespace siren {
 
 		masterBus->process();
 		for (size_t i = 0; i < requestedSamples; i++) {
-			outBuffer[i] = std::clamp(masterBus->m_buffer[i], -1.0f, 1.0f);
+			outBuffer[i] += std::clamp(masterBus->m_buffer[i], -1.0f, 1.0f);
 		}
 	}
 
