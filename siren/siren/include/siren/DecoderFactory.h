@@ -24,6 +24,6 @@ namespace siren {
 		/// @brief Determines the decoder needed to decode an audio source and creates it
 		/// @param source The data source to be decoded
 		/// @return The created decoder
-		[[nodiscard]] static Result<std::unique_ptr<Decoder>> createDecoder(std::unique_ptr<DataSource> source);
+		[[nodiscard]] static Result<std::unique_ptr<Decoder>> createDecoder(std::unique_ptr<DataSource> dataSource);
 	};
 }

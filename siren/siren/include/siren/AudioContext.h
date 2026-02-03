@@ -80,6 +80,10 @@ namespace siren {
 		/// @param vel Velocity vector in units per second.
 		void setListenerVelocity(const Vector3& vel);
 
+		/// @brief Retrieves a copy of the current listener state.
+		/// @return A ListenerData struct containing position, orientation, and velocity.
+		ListenerData getListener() const;
+
 		/// @brief Sets the smoothing factor for the listener's automatic velocity approximation.
 		/// 
 		/// Only used if velocity is not manually provided every frame.
@@ -115,10 +119,6 @@ namespace siren {
 
 		/// @return The global Doppler Effect multiplier.
 		float getGlobalDopplerFactor() const;
-
-		/// @brief Retrieves a copy of the current listener state.
-		/// @return A ListenerData struct containing position, orientation, and velocity.
-		ListenerData getListener() const;
 
 		/// @brief Creates a new AudioBus with the specified name.
 		/// 
@@ -183,8 +183,8 @@ namespace siren {
 		std::unique_ptr<ma_device> m_device; // The device used for audio playback
 
 		std::mutex m_busMutex;
-		std::unordered_map<std::string, std::shared_ptr<AudioBus>> m_busesMain; // Contains all audio buses
 		std::shared_ptr<AudioBus> m_masterBus = nullptr;
+		std::unordered_map<std::string, std::shared_ptr<AudioBus>> m_busesMain; // Contains all audio buses
 		using BusList = std::vector<std::shared_ptr<AudioBus>>;
 		std::atomic<std::shared_ptr<BusList>> m_busesAudio; // Snapshot of the buses accessed by audio thread
 
@@ -201,10 +201,11 @@ namespace siren {
 		std::atomic<bool> m_flushCompleted{ false };
 		
 		CoordinateSystem m_coordinateSystem = CoordinateSystem::LeftHanded;
+		mutable std::mutex m_listenerMutex; // Mutable for use in getListener()
 		ListenerData m_listener; // Represents the listener (most likely the player)
 		Vector3 m_previousListenerPos;
 		bool m_listenerVelocitySetThisFrame = false;
-		mutable std::mutex m_listenerMutex; // Mutable for use in getListener()
+
 		
 		float m_listenerVelocitySmoothing = 20.0f;
 		float m_defaultVelocitySmoothing = 10.0f; // Default set to all new voices

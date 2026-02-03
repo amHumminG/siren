@@ -83,20 +83,6 @@ namespace siren {
 		/// from the AudioContext.
 		void stop();
 
-		/// @return @c true if the voice has finished playback or has been stopped.
-		/// 
-		/// @note This method will return @c true if the Voice is either Inactive or Destroyed.
-		bool isFinished() const;
-
-		/// @brief Seeks to a specific time position in the Sound.
-		/// @note The seek request is asynchronous and will be processed at the start of
-		/// the next audio frame.
-		/// @param timePoint The position in seconds to jump to.
-		/// @attention There is currently no clamping functionality for this method.
-		/// This means that seeking to a timePoint larger than the length of the Sound will result
-		/// in no seek at all.
-		void seek(float timePoint);
-
 		/// @brief Permanently destroys the voice.
 		/// 
 		/// Marks the voice as Destroyed and blocks the calling thread briefly until the
@@ -108,6 +94,11 @@ namespace siren {
 		/// @warning The voice object should not be used after calling this.
 		void destroy();
 
+		/// @return @c true if the voice has finished playback or has been stopped.
+		/// 
+		/// @note This method will return @c true if the Voice is either Inactive or Destroyed.
+		bool isFinished() const;
+
 		/// @brief Controls whether the Voice persists after playback has finished.
 		/// 
 		/// If set to @c true, the Voice enters the Inactive state upon finishing playback and remains in memory.
@@ -117,6 +108,15 @@ namespace siren {
 
 		/// @return @c true if the Voice persists in memory after playback finishes.
 		bool isReusable() const;
+
+		/// @brief Seeks to a specific time position in the Sound.
+		/// @note The seek request is asynchronous and will be processed at the start of
+		/// the next audio frame.
+		/// @param timePoint The position in seconds to jump to.
+		/// @attention There is currently no clamping functionality for this method.
+		/// This means that seeking to a timePoint larger than the length of the Sound will result
+		/// in no seek at all.
+		void seek(float timePoint);
 
 		/// @brief Disables 3D spatialization and switches to @b Global mode (default for all Voices).
 		/// 
@@ -132,6 +132,14 @@ namespace siren {
 		/// The transition is instant; no cross-fading is applied between the old and new bus.
 		/// @param bus The target bus to route output to.
 		void setBus(std::shared_ptr<AudioBus> bus);
+
+		/// @brief Sets whether the Voice should loop back to the start when reaching the end
+		/// of the Sound
+		/// @param value @c true to loop indefinitely, @c false to stop at the end.
+		void setLooping(bool value);
+
+		/// @return @c true if the Voice is set to loop indefinitely.
+		bool isLooping() const;
 
 		/// @brief Sets the output volume.
 		/// 
@@ -157,14 +165,6 @@ namespace siren {
 
 		/// @return The current stereo pan setting (range: [-1.0, 1.0]).
 		float getPan() const;
-
-		/// @brief Sets whether the Voice should loop back to the start when reaching the end
-		/// of the Sound
-		/// @param value @c true to loop indefinitely, @c false to stop at the end.
-		void setLooping(bool value);
-
-		/// @return @c true if the Voice is set to loop indefinitely.
-		bool isLooping() const;
 
 		/// @brief Sets the playback pitch/speed multiplier.
 		/// 
@@ -292,21 +292,21 @@ namespace siren {
 		/// @return The current state of the Voice.
 		VoiceState getState();
 
-		std::string m_tag; // Defaults to the tag that the sound held when this voice was constructed
-
-		std::atomic<std::shared_ptr<AudioBus>> m_bus{ nullptr };
 		std::unique_ptr<Decoder> m_decoder;
 		Resampler m_resampler;
+		std::atomic<std::shared_ptr<AudioBus>> m_bus{ nullptr };
 
 		std::atomic<VoiceState> m_state{ VoiceState::Inactive };
-		std::atomic<bool> m_isMixing{ false }; // Gatekeeper
-
 		VoiceMode m_mode = VoiceMode::Global;
-		float m_volume = 1.0f;	// clamped between 0.0f and 1.0f
-		float m_pan = 0.0f;		// clamped between -1.0f and 1.0f
+		std::atomic<bool> m_isMixing{ false }; // Gatekeeper
+		std::string m_tag; // Defaults to the tag that the sound held when this voice was constructed
 		std::atomic<bool> m_isReusable{ true };
 		std::atomic<bool> m_isLooping{ false };
+
+		float m_volume = 1.0f;	// clamped between 0.0f and 1.0f
+		float m_pan = 0.0f;		// clamped between -1.0f and 1.0f
 		std::atomic<float> m_pitch{ 1.0f };
+
 		std::atomic<float> m_dopplerPitch{ 1.0f };
 		float m_dopplerFactor = 1.0f;
 		bool m_dopplerEffect = true;
@@ -321,16 +321,16 @@ namespace siren {
 		uint32_t m_sampleRate = 0; // Stored to be used for frame to seconds conversion
 
 		// 3D Emitter data
+		bool m_firstUpdate = true; // True if no update has been called on this voice yet
 		Vector3 m_position; // The position of the voice
 		Vector3 m_previousPosition; // The position of the voice from the previous frame
-		bool m_firstUpdate = true; // True if no update has been called on this voice yet
-
-		float m_minDistance = 1.0f; // Minimum distance the voice can be heard from (for volume scaling)
-		float m_maxDistance = 50.0f; // Maximum distance the voice can be heard from (for volume scaling)
 
 		Vector3 m_velocity; // The velocity of the voice (will be used if provided for that frame)
 		bool m_velocitySetThisFrame = false; // True if velocity has been manualy set for that frame
 		float m_velocitySmoothing = 10.0f;
+
+		float m_minDistance = 1.0f; // Minimum distance the voice can be heard from (for volume scaling)
+		float m_maxDistance = 50.0f; // Maximum distance the voice can be heard from (for volume scaling)
 
 		AttenuationModel m_attenuationModel = AttenuationModel::Linear;
 		float m_rolloff = 1.0f;

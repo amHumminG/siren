@@ -67,9 +67,25 @@ namespace siren {
 		}
 	}
 
+	void Voice::destroy() {
+		m_state.store(VoiceState::Destroyed, std::memory_order_seq_cst);
+
+		while (m_isMixing.load(std::memory_order_acquire)) {
+			std::this_thread::yield();
+		}
+	}
+
 	bool Voice::isFinished() const {
 		VoiceState state = m_state.load(std::memory_order_relaxed);
 		return state == VoiceState::Inactive || state == VoiceState::Destroyed;
+	}
+
+	void Voice::setReusable(bool value) {
+		m_isReusable.store(value, std::memory_order_relaxed); 
+	}
+
+	bool Voice::isReusable() const {
+		return m_isReusable.load(std::memory_order_relaxed);
 	}
 
 	void Voice::seek(float timePoint) {
@@ -82,22 +98,6 @@ namespace siren {
 		m_seekFrame.store(frame, std::memory_order_relaxed);
 	}
 
-	void Voice::destroy() {
-		m_state.store(VoiceState::Destroyed, std::memory_order_seq_cst);
-
-		while (m_isMixing.load(std::memory_order_acquire)) {
-			std::this_thread::yield();
-		}
-	}
-
-	void Voice::setReusable(bool value) {
-		m_isReusable.store(value, std::memory_order_relaxed);
-	}
-
-	bool Voice::isReusable() const {
-		return m_isReusable.load(std::memory_order_relaxed);
-	}
-
 	void Voice::setGlobal() {
 		m_mode = VoiceMode::Global;
 		m_pan = 0.0f; // Reset pan
@@ -105,6 +105,14 @@ namespace siren {
 
 	void Voice::setBus(std::shared_ptr<AudioBus> bus) {
 		m_bus.store(bus, std::memory_order_release);
+	}
+
+	void Voice::setLooping(bool value) {
+		m_isLooping.store(value, std::memory_order_relaxed);
+	}
+
+	bool Voice::isLooping() const {
+		return m_isLooping.load(std::memory_order_relaxed);
 	}
 
 	void Voice::setVolume(float value) {
@@ -123,21 +131,13 @@ namespace siren {
 		return m_pan;
 	}
 
-	void Voice::setLooping(bool value) {
-		m_isLooping.store(value, std::memory_order_relaxed);
-	}
-
-	bool Voice::isLooping() const {
-		return m_isLooping.load(std::memory_order_relaxed);
-	}
-
 	void Voice::setPitch(float value) {
 		m_pitch.store(std::clamp(value, 0.1f, 4.0f), std::memory_order_relaxed);
 	}
 
 	float Voice::getPitch() const {
 		return m_pitch.load(std::memory_order_relaxed);
-	}
+	} 
 
 	void Voice::setDopplerEffect(bool value) {
 		m_dopplerEffect = value;

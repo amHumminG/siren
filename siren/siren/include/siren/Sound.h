@@ -110,9 +110,9 @@ namespace siren {
 		/// @return A pointer to a DataSource object.
 		[[nodiscard]] Result<std::unique_ptr<DataSource>> createDataSource() const;
 
+		bool m_valid = false;
 		SoundType m_type;
 		std::string m_tag;
-		bool m_valid = false;
 
 		std::string m_path; // Used by [Stream, MemoryInternal]
 		std::shared_ptr<std::vector<std::byte>> m_internalData; // Used by [MemoryInternal]

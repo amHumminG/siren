@@ -26,20 +26,20 @@ namespace siren {
 		return createDecoder(std::move(source));
 	}
 
-	Result<std::unique_ptr<Decoder>> DecoderFactory::createDecoder(std::unique_ptr<DataSource> source) {
+	Result<std::unique_ptr<Decoder>> DecoderFactory::createDecoder(std::unique_ptr<DataSource> dataSource) {
 		// Read first four bytes of the data source
-		ResultCode result = source->seek(0);
+		ResultCode result = dataSource->seek(0);
 		if (result != ResultCode::Success) {
 			return result;
 		}
 
 		std::array<std::byte, 4> buffer;
-		if (source->read(buffer) < 4) {
+		if (dataSource->read(buffer) < 4) {
 			return ResultCode::InvalidData;
 		}
 
 		// Reset cursor for decoder
-		result = source->seek(0);
+		result = dataSource->seek(0);
 		if (result != ResultCode::Success) {
 			return result;
 		}
@@ -54,7 +54,7 @@ namespace siren {
 			return ResultCode::FormatNotSupported;
 		}
 
-		result = decoder->prime(std::move(source));
+		result = decoder->prime(std::move(dataSource));
 		if (result != ResultCode::Success) {
 			return result;
 		}
