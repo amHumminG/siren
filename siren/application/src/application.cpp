@@ -12,6 +12,7 @@
 #include "OrbitScenario.h"
 #include "SoundscapeScenario.h"
 #include "PitchScenario.h"
+#include "AttenuationScenario.h"
 
 // Misc
 #include <iostream>
@@ -74,13 +75,14 @@ int main() {
 
 	siren::AudioContext context;
 	context.init();
-	context.setCoordinateSystem(CoordinateSystem::RightHanded);
+	context.setCoordinateSystem(siren::CoordinateSystem::RightHanded);
 	auto masterBus = context.getBus("Master");
 	auto musicBus = context.createBus("Music");
 	auto sfxBus = context.createBus("SFX");
 	float masterVol = masterBus->getVolume();
 	float musicVol = musicBus->getVolume();
 	float sfxVol = sfxBus->getVolume();
+	siren::Sound testSound = siren::Sound::Internal("assets/audio/sfx/fah.wav");
 
 	bool mouseLock = false;
 	Vector3 start = { 0.0f, 5.0f, 0.0f };
@@ -100,11 +102,24 @@ int main() {
 	scenarios.push_back(std::make_unique<OrbitScenario>());
 	scenarios.push_back(std::make_unique<SoundscapeScenario>());
 	scenarios.push_back(std::make_unique<PitchScenario>());
+	scenarios.push_back(std::make_unique<AttenuationScenario>());
 
 	Scenario* selectedScenario = nullptr;
 
 	while (!WindowShouldClose()) {
 		float deltaTime = GetFrameTime();
+
+		//// Stress test and thread safety TODO: Make this a scenario
+		//static float spawnTimer = 0.0f;
+		//spawnTimer += deltaTime;
+		//if (spawnTimer >= 1.0f) {
+		//	spawnTimer -= 1.0f;
+		//	// Force a massive reallocation cycle
+		//	for (int i = 0; i < 1000; i++) {
+		//		context.createVoice(testSound); // Pushes to vector
+		//	}
+		//	context.flush(); // Clears vector
+		//}
 
 		// Toggle mouse lock
 		if (IsKeyPressed(KEY_C)) {

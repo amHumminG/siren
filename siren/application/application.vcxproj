@@ -148,6 +148,7 @@
     <ClCompile Include="src\application.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\AttenuationScenario.h" />
     <ClInclude Include="src\PitchScenario.h" />
     <ClInclude Include="src\SoundscapeScenario.h" />
     <ClInclude Include="src\OrbitScenario.h" />
