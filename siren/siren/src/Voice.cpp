@@ -156,6 +156,10 @@ namespace siren {
 		m_mode = VoiceMode::Spatial;
 	}
 
+	Vector3 Voice::getPosition() {
+		return m_position;
+	}
+
 	void Voice::setVelocity(const Vector3& vel) {
 		m_velocity = vel;
 		m_velocitySetThisFrame = true;

@@ -209,6 +209,9 @@ namespace siren {
 		/// @param pos The position vector.
 		void setPosition(const Vector3& pos);
 
+		/// @return The current position of the Voice
+		Vector3 getPosition();
+
 		/// @brief Manually sets the Voice velocity for this frame.
 		/// 
 		/// If not called, the engine automatically approximates velocity based on position changes.
