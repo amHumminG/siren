@@ -1,5 +1,8 @@
 # Architecture Documentation
 
+## Architecture Diagram
+![Siren Architecture](diagrams/Architecture%20Diagram.svg)
+
 ## The Core Classes
 #### The Data Layer (I/O)* **`DataSource` (Interface):** Abstract base class for reading bytes.
 * **`FileDataSource`:** Reads from disk (`std::ifstream`).
