@@ -301,7 +301,7 @@ namespace siren {
 
 		if (bus == nullptr) {
 			SIREN_LOG_WARNING("AudioContext::createVoice() No bus with name: " << busName << " exists. Defaulting to Master");
-			bus = getBus("Master");
+			bus = m_masterBus;
 		}
 		if (bus == nullptr) { // Default to master bus if bus was not found
 			SIREN_LOG_ERROR("AudioContext::createVoice() Master bus does not exist");
@@ -345,6 +345,10 @@ namespace siren {
 			bus->prepare(frameCount, channels);
 		}
 
+		std::shared_ptr<AudioBus> masterBus = context->m_masterBus;
+		if (!masterBus) return;
+		masterBus->prepare(frameCount, channels);
+
 		auto& voices = context->m_voicesAudio;
 		for (auto it = voices.begin(); it != voices.end(); ) {
 			auto& voice = *it;
@@ -357,10 +361,6 @@ namespace siren {
 				it++;
 			}
 		}
-
-		std::shared_ptr<AudioBus> masterBus = context->m_masterBus;
-		if (!masterBus) return;
-		masterBus->prepare(frameCount, channels);
 
 		for (auto& bus : *buses) {
 			bus->process();
