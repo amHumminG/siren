@@ -94,7 +94,7 @@ public:
         ImGui::SeparatorText("Emitter Movement");
 
         // Toggle Auto Move
-        ImGui::Checkbox("Auto Ping-Pong (0m <-> 100m)", &m_autoMove);
+        ImGui::Checkbox("Auto Ping-Pong (0m <-> ?m)", &m_autoMove);
         ImGui::Text("Maximum Travel Distance");
         ImGui::SliderFloat("###Maximum Travel Distance", &m_maxZ, 100.0f, 1000.0f);
 
