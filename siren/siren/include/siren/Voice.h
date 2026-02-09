@@ -27,8 +27,8 @@ namespace siren {
 
 		enum class AttenuationModel {
 			None,
-			Linear,
-			Inverse,
+			Linear, // Default
+			Inverse, // Realistic
 			Exponential
 		};
 
@@ -248,10 +248,17 @@ namespace siren {
 		/// @return The maximun distance (silence radius) for spatial attenuation.
 		float getMaxDistance();
 
+		/// @brief Sets the attenuation model that determines spatial volume dropoff
+		/// for this Voice.
+		/// 
+		/// @param model The attenuation model. Defaults to linear.
 		void setAttenuationModel(AttenuationModel model);
 
+		/// @brief Sets the rolloff factor for the inverse attenuation model.
+		/// @param value Rolloff factor. Defaults to @c 1.0
 		void setRolloff(float value);
 
+		/// @return The rolloff factor used for the inverse attenuation model.
 		float getRolloff();
 
 		/// @brief Assigns a custom string tag for identification of this Voice.
