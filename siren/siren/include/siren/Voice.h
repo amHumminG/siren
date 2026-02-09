@@ -251,6 +251,13 @@ namespace siren {
 		/// @brief Sets the attenuation model that determines spatial volume dropoff
 		/// for this Voice.
 		/// 
+		/// - Linear: Simple linear dropoff between min and max distance
+		/// 
+		/// - Inverse: Realistic. If this is used, make sure to set maxDistance to
+		/// a large number to avoid audio cutoff when emitter goes out of maxDistance.
+		/// 
+		/// - Exponential: Exponential dropoff between min and max distance.
+		/// 
 		/// @param model The attenuation model. Defaults to linear.
 		void setAttenuationModel(AttenuationModel model);
 
